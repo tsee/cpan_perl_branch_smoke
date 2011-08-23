@@ -15,7 +15,10 @@ GetOptions(
 defined $perl or die "Need target --perl!";
 -x $perl or die "Can't execute the target perl '$perl'!";
 defined $mirror or die "Need source CPAN mirror!";
-$ENV{CPANMIRROR} = $mirror;
+$ENV{CPAN_MIRROR} = $mirror;
+$ENV{AUTOMATED_TESTING} = 1;
+$ENV{PERL_MM_USE_DEFAULT} = 1;
+$ENV{PERL_EXTUTILS_AUTOINSTALL} = "--defaultdeps";
 
 my $workdir = make_work_dir();
 setup_cpan_dir($workdir);
