@@ -8,6 +8,7 @@ use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
 use MySmokeToolbox qw(make_work_dir setup_cpan_dir);
 
 GetOptions(
+  'is-host-perl' => \(my $is_host_perl),
   'perl=s' => \(my $perl),
   'm|mirror=s' => \(my $mirror),
 ) or die "Invalid options";
@@ -23,8 +24,41 @@ $ENV{PERL_EXTUTILS_AUTOINSTALL} = "--defaultdeps";
 my $workdir = make_work_dir();
 setup_cpan_dir($workdir);
 
-my @mod = map {chomp; $_} grep /\S/, grep !/^#/, <DATA>;
-system($perl, '-MCPAN', '-e', 'install($_) for @ARGV', @mod)
+my $perl_type = $is_host_perl ? 'host_perl' : 'test_perl';
+
+my %modules = (
+  test_perl => [
+    #Bundle::CPAN
+    #CPAN::Reporter
+    #CPAN::Reporter::Smoker
+    #POE::Component::SmokeBox
+    qw(
+
+    CPANPLUS
+    CPANPLUS::Config::BaseEnv
+    CPANPLUS::YACSmoke
+
+    Test::Reporter
+    File::Fetch
+    Parse::CPAN::Meta
+    DBIx::Simple
+    DBD::SQLite
+  )],
+  host_perl => [
+    #Bundle::CPAN
+    #CPAN::Reporter
+    #CPAN::Reporter::Smoker
+    qw(
+    CPAN::Mini
+    App::grindperl
+    POE::Component::SmokeBox
+    CPANPLUS
+    CPANPLUS::Config::BaseEnv
+    CPANPLUS::YACSmoke
+  )],
+);
+
+system($perl, '-MCPAN', '-e', 'print("Installing $_\n"), install($_) for @ARGV', @{$modules{$perl_type}})
   and die "Module installation failed!";
 
 __DATA__
