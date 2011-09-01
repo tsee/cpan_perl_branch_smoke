@@ -1,0 +1,52 @@
+- fix ~/.cpanplus creation issue (::Config::BaseEnv?)
+  => Done, $ENV{HOME}, sigh.
+- make script for prereqs
+  => Done
+- make script for perl build
+  => grindperl for now
+- Configurable output dir
+- Output dir name containing perl info
+- find machine
+- make restartable?
+- smoke
+- make user friendly
+
+
+User guide:
+In all of this, replace "~" with whereever you put your perl stuff.
+
+- Install all the required smoker modules in an unrelated perl. Can be the system perl,
+  your own, whatever.
+  => Either use the slightly questionable
+     "sudo perl bin/install_prereqs.pl --is-host-perl --perl=`which perl` --mirror=..."
+  => Or manually install the host_perl modules listed in bin/install_prereqs.pl.
+
+- Get a minicpan:
+  $ minicpan -l ~/minicpan/ -r http://your_favourite_cpan_mirror
+  It makes sense not to modify/update this minicpan during the test run.
+
+- Build the two perls to compare (and install smoking modules into each):
+  $ cd ~/perl.git; git checkout blead
+  $ grindperl --prefix=~/install-reference --porting --install
+  $ cd ~/cpanbranchtest; perl bin/install_prereqs.pl --perl=~/install-reference/bin/perl --mirror=~/minicpan
+  (This may require a perl version after bin/perl...)
+
+  $ cd ~/perl.git; git checkout testbranch
+  $ grindperl --prefix=~/install-testbranch --porting --install
+  $ cd ~/cpanbranchtest; perl bin/install_prereqs.pl --perl=~/install-testbranch/bin/perl --mirror=~/minicpan
+
+- Get a list of distributions to smoke:
+  $ cd ~/cpanbranchtest; perl bin/get_dists.pl ~/minicpan/modules/02packages.details.txt.gz > to_smoke.txt
+  Feel free to manually specify dist files or module names instead!
+
+- The big, slow step: Run the smoker for each perl:
+  $ cd ~/cpanbranchtest
+  $ perl bin/smoker.pl --perlname=testbranch --outdir=out --mirror=file://~/minicpan/ --perl=~/install-testbranch/bin/perl to_smoke.txt
+  $ perl bin/smoker.pl --perlname=reference  --outdir=out --mirror=file://~/minicpan/ --perl=~/install-reference/bin/perl to_smoke.txt
+
+- Compare the output
+  $ perl bin/compare-report-dirs.pl --output-dir=html_out --reference-dir=out/perl-reference/ --test-dir=out/perl-testbranch/ --html
+  (This may take a while...)
+  $ firefox html_out/index.html
+
+
