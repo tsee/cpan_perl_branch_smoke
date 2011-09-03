@@ -8,10 +8,21 @@ my %dists;
 while (1) {
   last if <$fh> =~ /^\s*$/;
 }
+my $blacklist = '\b'
+                . join('|', map { chomp; s/^\s+//; s/#.*$//; s/\s+$//; /\S/ ? "(?:" . quotemeta($_) . ")" : () } <DATA>)
+                . '-[v0-9]';
+
+
 while (<$fh>) {
   chomp;
   /^\S+\s+\S+\s+(.*)$/ or next;
-  $dists{$1}++;
+  my $d = $1;
+  warn("Blacklisted: $d\n"), next if $d =~ $blacklist;
+  $dists{$d}++;
 }
 close $fh;
 print "$_\n" for sort keys %dists;
+
+__DATA__
+
+Inline-Octave # reads from STDIN during Makefile.PL
