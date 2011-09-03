@@ -11,6 +11,7 @@ GetOptions(
   'is-host-perl' => \(my $is_host_perl),
   'perl=s' => \(my $perl),
   'm|mirror=s' => \(my $mirror),
+  'no-test|notest' => \(my $notest),
 ) or die "Invalid options";
 
 defined $perl or die "Need target --perl!";
@@ -58,8 +59,14 @@ my %modules = (
   )],
 );
 
-system($perl, '-MCPAN', '-e', 'print("Installing $_\n"), install($_) for @ARGV', @{$modules{$perl_type}})
-  and die "Module installation failed!";
+if ($notest) {
+  system($perl, '-MCPAN', '-e', 'print("Installing $_\n"), CPAN::Shell->notest("install", $_) for @ARGV', @{$modules{$perl_type}})
+    and die "Module installation failed!";
+}
+else {
+  system($perl, '-MCPAN', '-e', 'print("Installing $_\n"), install($_) for @ARGV', @{$modules{$perl_type}})
+    and die "Module installation failed!";
+}
 
 __DATA__
 
