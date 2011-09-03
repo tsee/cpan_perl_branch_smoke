@@ -4,10 +4,11 @@ use strict;
 use warnings;
 use File::Spec;
 use File::Temp qw(tempdir);
+use Test::Reporter;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(make_work_dir src_conf_dir setup_cpanplus_dir setup_cpan_dir);
+our @EXPORT_OK = qw(make_work_dir src_conf_dir setup_cpanplus_dir setup_cpan_dir get_report_info);
 
 SCOPE: {
   my $conf_dir;
@@ -36,6 +37,30 @@ sub setup_cpan_dir {
   my $cpandir = File::Spec->catdir(src_conf_dir(), '.cpan');
 
   `cp -r $cpandir $workdir`; # FIXME portability
+}
+
+
+# TODO validate pseudo-parse of file name
+sub get_report_info {
+  my $file = shift;
+  my ($v, $d, $fcopy) = File::Spec->splitpath($file);
+
+  # this is a hack, but orders of magnitude faster than using
+  # Test::Reporter for large sets of reports
+  $fcopy =~ s/^(\w+)\.// or warn("grade fail"), return _get_report_info_reporter($file);
+  my $grade = $1;
+
+  $fcopy =~ s/^(.*?)\.(?:i[63]86|x86_64|arm)// or warn("dist fail"), return _get_report_info_reporter($file);
+  my $distname = $1;
+
+  return {distribution => $distname, file => $file, grade => $grade};
+}
+
+sub _get_report_info_reporter {
+  my $file = shift;
+  my $tr = eval { Test::Reporter->new->read( $file ) };
+  die if not $tr;
+  return { file => $file, grade => $tr->grade, distribution => $tr->distribution };
 }
 
 

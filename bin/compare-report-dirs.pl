@@ -7,6 +7,9 @@ use Path::Class;
 use Getopt::Lucid qw/:all/;
 use Test::Reporter;
 use File::Copy qw/copy/;
+use FindBin qw($RealBin);
+use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
+use MySmokeToolbox qw(get_report_info);
 
 my @spec = (
   # required
@@ -150,27 +153,6 @@ sub read_results {
     $results{ $info->{distribution} } = $info;
   }
   return %results;
-}
-
-sub get_report_info {
-  my $file = shift;
-  my ($v, $d, $fcopy) = File::Spec->splitpath($file);
-
-  # this is a hack, but much faster than using Test::Reporter for large sets of reports
-  $fcopy =~ s/^(\w+)\.// or warn("grade fail"), return get_report_info_reporter($file);
-  my $grade = $1;
-
-  $fcopy =~ s/^(.*?)\.(?:i[63]86|x86_64|arm)// or warn("dist fail"), return get_report_info_reporter($file);
-  my $distname = $1;
-
-  return {distribution => $distname, file => $file, grade => $grade};
-}
-
-sub get_report_info_reporter {
-  my $file = shift;
-  my $tr = eval { Test::Reporter->new->read( $file ) };
-  die if not $tr;
-  return { file => $file, grade => $tr->grade, distribution => $tr->distribution };
 }
 
 sub colorspan {
