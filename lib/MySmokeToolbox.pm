@@ -47,10 +47,11 @@ sub get_report_info {
 
   # this is a hack, but orders of magnitude faster than using
   # Test::Reporter for large sets of reports
-  $fcopy =~ s/^(\w+)\.// or warn("grade fail"), return _get_report_info_reporter($file);
+  $fcopy =~ s/^(\w+)\.// or return _get_report_info_reporter($file);
   my $grade = $1;
 
-  $fcopy =~ s/^(.*?)\.(?:i[63]86|x86_64|arm)// or warn("dist fail"), return _get_report_info_reporter($file);
+  # TODO: In principle, we could get the archname from the perl in question... can't be bothered now.
+  $fcopy =~ s/^(.*?)\.(?:i[356]86|x86_64|arm|mips)// or return _get_report_info_reporter($file);
   my $distname = $1;
 
   return {distribution => $distname, file => $file, grade => $grade};
