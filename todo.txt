@@ -48,5 +48,9 @@ In all of this, replace "~" with whereever you put your perl stuff.
   $ perl bin/compare-report-dirs.pl --output-dir=html_out --reference-dir=out/perl-reference/ --test-dir=out/perl-testbranch/ --html
   (This may take a while...)
   $ firefox html_out/index.html
+  
+  You can also already run the comparison script before both smokers are done.
+  To avoid lots of "missing" vs. "pass" result differences, pass the
+  --skip-missing option to compare-report-dirs.pl.
 
 
