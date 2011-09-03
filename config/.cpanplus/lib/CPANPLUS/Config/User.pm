@@ -77,7 +77,7 @@ sub setup {
     $conf->set_program( editor => '/usr/bin/vim' );    
     $conf->set_program( make => '/usr/bin/make' );    
     $conf->set_program( pager => '/usr/bin/less' );    
-    $conf->set_program( perlwrapper => '/usr/bin/cpanp-run-perl' );    
+    #$conf->set_program( perlwrapper => '/usr/bin/cpanp-run-perl' );    
     $conf->set_program( shell => '/bin/bash' );    
     $conf->set_program( sudo => '/usr/bin/sudo' );    
     
