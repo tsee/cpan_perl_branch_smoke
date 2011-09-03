@@ -17,6 +17,7 @@ my @spec = (
   # optional
   Switch("html"),
   Switch("help|h"),
+  Switch("skip-missing"),
 );
 
 my $usage = << "ENDHELP";
@@ -27,6 +28,8 @@ REQUIRED OPTIONS:
   --test-dir            directory containing reports from test perl
   --output-dir          output directory
   --list|-L   FILE      file with list of dists to test
+  --skip-missing        skip all dists where either one of the perls
+                        is missing the report
 
 OTHER OPTIONS:
   --html                generate a index.html file with results
@@ -44,6 +47,7 @@ my $output_dir = dir( $opt->get_output_dir )->absolute;
 #my $list = file($opt->get_list)->absolute;
 my $old_report_dir = dir($opt->get_reference_dir)->absolute;
 my $new_report_dir = dir($opt->get_test_dir)->absolute;
+my $skip_missing = $opt->get_skip_missing;
 
 my $suffix = qr{\.(?:tar\.(?:bz2|gz|Z)|t(?:gz|bz)|(?<!ppm\.)zip|pm.gz)$}i; 
 
@@ -97,6 +101,9 @@ for my $d ( sort keys %all_dists ) {
               && $old{$d}{grade} eq $new{$d}{grade};
   my $old_grade = $old{$d}{grade} || 'missing';
   my $new_grade = $new{$d}{grade} || 'missing';
+  if ($skip_missing and $old_grade eq 'missing' || $new_grade eq 'missing') {
+    next;
+  }
 
   if ( $opt->get_html ) {
     my $old_path = exists $old{$d}{file} ? $old{$d}{file}->relative( $old_report_dir ) : '';
@@ -138,14 +145,32 @@ sub read_results {
   for my $f ( @files ) {
     ++$i;
     printf("  %.1f%%\n", $i/scalar(@files)*100) if not $i % 100;
-    my $tr = eval { Test::Reporter->new->read( $f ) };
-    if ( ! $tr ) {
-      warn "Error parsing $f: $@\n";
-      next;
-    }
-    $results{ $tr->distribution } = { file => $f, grade => $tr->grade };
+    my $info = eval { get_report_info($f) };
+    warn("Can't get report info for '$f'\n"), next if not $info;
+    $results{ $info->{distribution} } = $info;
   }
   return %results;
+}
+
+sub get_report_info {
+  my $file = shift;
+  my ($v, $d, $fcopy) = File::Spec->splitpath($file);
+
+  # this is a hack, but much faster than using Test::Reporter for large sets of reports
+  $fcopy =~ s/^(\w+)\.// or warn("grade fail"), return get_report_info_reporter($file);
+  my $grade = $1;
+
+  $fcopy =~ s/^(.*?)\.(?:i[63]86|x86_64|arm)// or warn("dist fail"), return get_report_info_reporter($file);
+  my $distname = $1;
+
+  return {distribution => $distname, file => $file, grade => $grade};
+}
+
+sub get_report_info_reporter {
+  my $file = shift;
+  my $tr = eval { Test::Reporter->new->read( $file ) };
+  die if not $tr;
+  return { file => $file, grade => $tr->grade, distribution => $tr->distribution };
 }
 
 sub colorspan {
