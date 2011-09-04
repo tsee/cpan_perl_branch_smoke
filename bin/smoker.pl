@@ -26,6 +26,7 @@ GetOptions(
   'm|mirror=s' => \(my $mirror),
   'o|outdir=s' => \(my $outdir),
   'restart' => \(my $restart),
+  'processes=i' => \(my $processes),
 );
 
 die "No 'perl' specified\n" unless $perl;
@@ -35,6 +36,7 @@ defined $perlname or die "Need a name assigned to the perl we're testing!";
 die "No modules specified to smoke\n" unless scalar @ARGV;
 
 $outdir = File::Spec->catdir(abs_path($outdir), "perl-$perlname");
+$processes = 1 if not $processes;
 
 if ($restart) {
   local $| = 1;
@@ -71,9 +73,41 @@ print "Original todo list: " . scalar(@todo) . " distributions.\n";
 } @todo;
 print "Filtered todo list: " . scalar(@todo) . " distributions.\n";
 
+my @pids;
+my @proc_todo; # per-process todo lists
+my $proc_no; # this process' running id (only in children)
+my $per_proc = int(scalar(@todo) / $processes); # no. of items to do per process
+push @proc_todo, [splice(@todo, 0, $per_proc)] for 1..$processes-1; # divide work
+push @proc_todo, \@todo; # the rest
+
+if ($processes > 1) {
+  print "Divided todo list in " . $processes . " chunks:\n";
+  print join(', ', map {"[" . scalar(@{ $proc_todo[$_] }) . "]"} 0..$#proc_todo), "\n";
+}
+
+
+# spawn workers
+foreach my $this_proc_no (1..$processes) {
+  my $pid = fork;
+  $proc_no = $this_proc_no, last if not $pid;
+  push @pids, $pid;
+}
+
+# The parent process just waits for all children to finish
+if (!$proc_no) {
+  waitpid($_, 0) for @pids;
+  print "Parent, all children done!\n";
+  exit;
+}
+
 # prepare work dir and configuration
 my $workdir = make_work_dir();
 setup_cpanplus_dir($workdir);
+
+# Okay, I admit that it looks like SmokeBox can run many smokers
+# in parallel, but the interface still eludes me and doesn't seem
+# to be geared towards dividing work between multiple cores but rather
+# smoking the same modules on multiple perls (which would be useful, too).
 
 my $smokebox = POE::Component::SmokeBox->spawn();
 
@@ -81,12 +115,14 @@ POE::Session->create(
   package_states => [
     'main' => [ qw(_start _stop _results) ],
   ],
-  heap => { perl => $perl, pending => [ @todo] },
+  heap => { perl => $perl, pending => [@todo] },
 );
 
 print "Running POE...\n";
 $poe_kernel->run();
-exit 0;
+
+print "Child $proc_no: Done.\n";
+exit(0);
 
 sub _start {
   my ($kernel,$heap) = @_[KERNEL,HEAP];
