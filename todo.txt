@@ -1,14 +1,7 @@
 - fix ~/.cpanplus creation issue (::Config::BaseEnv?)
   => Done, $ENV{HOME}, sigh.
-- make script for prereqs
-  => Done
 - make script for perl build
   => grindperl for now
-- Configurable output dir
-- Output dir name containing perl info
-- find machine
-- make restartable?
-- smoke
 - make user friendly
 
 
@@ -42,7 +35,13 @@ In all of this, replace "~" with whereever you put your perl stuff.
 - The big, slow step: Run the smoker for each perl:
   $ cd ~/cpanbranchtest
   $ perl bin/smoker.pl --perlname=testbranch --outdir=out --mirror=file://~/minicpan/ --perl=~/install-testbranch/bin/perl to_smoke.txt
-  $ perl bin/smoker.pl --perlname=reference  --outdir=out --mirror=file://~/minicpan/ --perl=~/install-reference/bin/perl to_smoke.txt
+  $ perl bin/smoker.pl --perlname=reference  --outdir=out --mirror=file://~/minicpan/ --perl=~/install-reference/bin/perl  to_smoke.txt
+
+  If you have a beefy machine with many cores, you parallelize the work with
+  the --processes=$N option of smoker.pl.
+  At (presumably) any point during the run, you can kill the smoker process
+  and restart it with the same output directory. It won't reprocess
+  distributions for which a report exists.
 
 - Compare the output
   $ perl bin/compare-report-dirs.pl --output-dir=html_out --reference-dir=out/perl-reference/ --test-dir=out/perl-testbranch/ --html
