@@ -115,7 +115,7 @@ POE::Session->create(
   package_states => [
     'main' => [ qw(_start _stop _results) ],
   ],
-  heap => { perl => $perl, pending => [@todo] },
+  heap => { perl => $perl, pending => $proc_todo[$proc_no-1] },
 );
 
 print "Running POE...\n";
