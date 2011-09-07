@@ -98,15 +98,20 @@ else {
   printf "%8s %8s %s\n", @$_ for ["  old  ", "  new  ", "dist"], [qw/------ ------ -------/];
 }
 
+my $nsame = 0;
+my $nmissing = 0;
+my $ndiff = 0;
 for my $d ( sort keys %all_dists ) {
   #next unless exists $mb_dists{$d};
-  next if exists $old{$d} && exists $new{$d} 
-              && $old{$d}{grade} eq $new{$d}{grade};
+  ++$nsame, next if exists $old{$d} && exists $new{$d} 
+                    && $old{$d}{grade} eq $new{$d}{grade};
   my $old_grade = $old{$d}{grade} || 'missing';
   my $new_grade = $new{$d}{grade} || 'missing';
   if ($skip_missing and $old_grade eq 'missing' || $new_grade eq 'missing') {
+    ++$nmissing;
     next;
   }
+  ++$ndiff;
 
   if ( $opt->get_html ) {
     my $old_path = exists $old{$d}{file} ? $old{$d}{file}->relative( $old_report_dir ) : '';
@@ -135,7 +140,9 @@ for my $d ( sort keys %all_dists ) {
 }
 
 if ( $opt->get_html ) {
-  print {$html_fh} "</table></body></html>\n";
+  print {$html_fh} "</table>\n";
+  print {$html_fh} "<p>Distributions in both data sets: $nsame<br/>Distributions missing in one data set: $nmissing<br/>Distributions that differ: $ndiff</p>";
+  print {$html_fh} "</body></html>\n";
   close $html_fh;
 }
 
@@ -150,6 +157,9 @@ sub read_results {
     printf("  %.1f%%\n", $i/scalar(@files)*100) if not $i % 100;
     my $info = eval { get_report_info($f) };
     warn("Can't get report info for '$f'\n"), next if not $info;
+    #if (exists $results{$info->{distribution}}) {
+    #  warn "Duplicate dist: " . $info->{distribution};
+    #}
     $results{ $info->{distribution} } = $info;
   }
   return %results;
