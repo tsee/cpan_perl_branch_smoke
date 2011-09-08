@@ -82,6 +82,7 @@ if ( $opt->get_html ) {
 <style>
   body { font-family:sans-serif; background-color: white }
   .grade    { text-align: center; font-weight:bold }
+  .statstd  { text-align: center }
   .grade a  { text-decoration: none }
   .pass     { background-color: #00ff00 }
   .fail     { background-color: #ff0000 }
@@ -101,8 +102,18 @@ else {
 my $nsame = 0;
 my $nmissing = 0;
 my $ndiff = 0;
+my $dist_grades_old = {};
+my $dist_grades_new = {};
 for my $d ( sort keys %all_dists ) {
   #next unless exists $mb_dists{$d};
+
+  if (exists $old{$d}) {
+    $dist_grades_old->{$old{$d}{grade}}++;
+  }
+  if (exists $new{$d}) {
+    $dist_grades_new->{$new{$d}{grade}}++;
+  }
+
   ++$nsame, next if exists $old{$d} && exists $new{$d} 
                     && $old{$d}{grade} eq $new{$d}{grade};
   my $old_grade = $old{$d}{grade} || 'missing';
@@ -141,7 +152,40 @@ for my $d ( sort keys %all_dists ) {
 
 if ( $opt->get_html ) {
   print {$html_fh} "</table>\n";
-  print {$html_fh} "<p>Distributions in both data sets: $nsame<br/>Distributions missing in one data set: $nmissing<br/>Distributions that differ: $ndiff</p>";
+
+  my %grades = map {$_=>1} (keys %$dist_grades_old, keys %$dist_grades_new);
+  my @grades = sort keys %grades;
+  my %grade_totals = map {$_ => ($dist_grades_new->{$_}||0) + ($dist_grades_old->{$_}||0)} @grades;
+
+  print {$html_fh} <<HERE;
+<p>
+  Distributions in both data sets: $nsame<br/>
+  Distributions missing in one data set: $nmissing<br/>
+  Distributions that differ: $ndiff
+</p>
+
+<h3>Total numbers of distribution test grades</h3>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr><th>perl</th>
+HERE
+
+  print {$html_fh} (map qq{<th class="grade $_">$_</th>}, @grades), "</tr>\n";
+
+  foreach my $s ( ['old', $dist_grades_old],
+                  ['new', $dist_grades_new],
+                  ['total', \%grade_totals], )
+  {
+    my $nthisrow = 0;
+    $nthisrow += $_||0 for values %{$s->[1]};
+
+    print {$html_fh} "<tr><th>$s->[0]</th>";
+    foreach (@grades) {
+      print {$html_fh} '<td class="statstd">' . sprintf("%i (%.0f%%)", $s->[1]{$_}||0, 100*($s->[1]{$_}||0)/$nthisrow) . "</td>";
+    }
+    print {$html_fh} "</tr>\n";
+  }
+  print {$html_fh} "</table>\n";
+
   print {$html_fh} "</body></html>\n";
   close $html_fh;
 }
