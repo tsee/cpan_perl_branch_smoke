@@ -76,7 +76,8 @@ if ( $opt->get_html ) {
   $output_dir->subdir("web-new")->rmtree;
   $output_dir->subdir("web-new")->mkpath;
   open $html_fh, ">", $output_dir->file("index.html");
-  print {$html_fh} << 'HTML';
+  my $timestamp = localtime();
+  print {$html_fh} <<"HTML";
 <html>
 <head><title>Regression test</title>
 <style>
@@ -92,6 +93,7 @@ if ( $opt->get_html ) {
 </style>
 </head>
 <body><h1>Regresssion test</h1>
+<p>Generated at $timestamp.</p>
 <table><tr><th>Old</th><th>New</ht><th>Dist</th></tr>
 HTML
 }
