@@ -44,6 +44,7 @@ my %modules = (
     Parse::CPAN::Meta
     DBIx::Simple
     DBD::SQLite
+    File::Copy::Recursive
   )],
   host_perl => [
     #Bundle::CPAN
@@ -56,6 +57,7 @@ my %modules = (
     CPANPLUS
     CPANPLUS::Config::BaseEnv
     CPANPLUS::YACSmoke
+    File::Copy::Recursive
   )],
 );
 
