@@ -41,7 +41,11 @@ sub setup_cpan_dir {
 }
 
 
-# TODO validate pseudo-parse of file name
+# This attempts to determine the distname and test grade from the report file name.
+# While a hack, this is practically a requirement over using Test::Reporter to
+# parse the actual test result because Test::Reporter parsing is so painfully
+# slow that the comparison report generation takes until the heat death of the
+# universe (or until my patience runs out).
 sub get_report_info {
   my $file = shift;
   my ($v, $d, $fcopy) = File::Spec->splitpath($file);
@@ -51,7 +55,7 @@ sub get_report_info {
   $fcopy =~ s/^(\w+)\.// or return _get_report_info_reporter($file);
   my $grade = $1;
 
-  # TODO: In principle, we could get the archname from the perl in question... can't be bothered now.
+  # FIXME In principle, we could get the archname from the perl in question... can't be bothered now.
   $fcopy =~ s/^(.*?)\.(?:i[356]86|x86_64|arm|mips)// or return _get_report_info_reporter($file);
   my $distname = $1;
 
