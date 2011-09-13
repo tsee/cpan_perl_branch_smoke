@@ -37,7 +37,7 @@ sub setup_cpan_dir {
   my $workdir = shift;
   my $cpandir = File::Spec->catdir(src_conf_dir(), '.cpan');
 
-  dircopy($cpanpdir, $workdir) or die $!;
+  dircopy($cpandir, $workdir) or die $!;
 }
 
 
