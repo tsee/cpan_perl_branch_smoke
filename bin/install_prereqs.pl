@@ -60,6 +60,7 @@ my %modules = (
     CPANPLUS::Config::BaseEnv
     CPANPLUS::YACSmoke
     File::Copy::Recursive
+    File::pushd
   )],
 );
 
@@ -72,20 +73,3 @@ else {
     and die "Module installation failed!";
 }
 
-__DATA__
-
-#Bundle::CPAN
-#CPAN::Reporter
-#CPAN::Reporter::Smoker
-POE::Component::SmokeBox
-
-CPANPLUS
-CPANPLUS::Config::BaseEnv
-CPANPLUS::YACSmoke
-
-Test::Reporter
-File::Fetch
-Parse::CPAN::Meta
-File::Temp
-DBIx::Simple
-DBD::SQLite
