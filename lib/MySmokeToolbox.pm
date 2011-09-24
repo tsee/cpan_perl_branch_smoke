@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use File::Spec;
 use File::Temp qw(tempdir);
-use Test::Reporter;
-use File::Copy::Recursive qw(dircopy);
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -30,14 +28,16 @@ sub setup_cpanplus_dir {
   my $workdir = shift;
   my $cpanpdir = File::Spec->catdir(src_conf_dir(), '.cpanplus');
 
-  dircopy($cpanpdir, $workdir) or die $!;
+  require File::Copy::Recursive;
+  File::Copy::Recursive::dircopy($cpanpdir, File::Spec->catdir($workdir, '.cpanplus')) or die $!;
 }
 
 sub setup_cpan_dir {
   my $workdir = shift;
   my $cpandir = File::Spec->catdir(src_conf_dir(), '.cpan');
 
-  dircopy($cpandir, $workdir) or die $!;
+  require File::Copy::Recursive;
+  File::Copy::Recursive::dircopy($cpandir, File::Spec->catdir($workdir, '.cpan')) or die $!;
 }
 
 
@@ -64,6 +64,7 @@ sub get_report_info {
 
 sub _get_report_info_reporter {
   my $file = shift;
+  require Test::Reporter;
   my $tr = eval { Test::Reporter->new->read( $file ) };
   die if not $tr;
   return { file => $file, grade => $tr->grade, distribution => $tr->distribution };
