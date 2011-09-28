@@ -76,7 +76,7 @@ install_a_perl($perl_repo_dir => $install_dir, \@perl_opt);
 runsys_fatal(
   $^X,
   File::Spec->catfile($RealBin, 'install_prereqs.pl'),
-  '--perl', File::Spec->catfile($install_dir, 'nbin', 'perl'),
+  '--perl', File::Spec->catfile($install_dir, 'bin', 'perl'),
   '--mirror', $cpan_mirror,
   ($no_test ? ('--no-test') : ()),
 );
