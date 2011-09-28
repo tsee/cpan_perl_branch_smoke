@@ -8,7 +8,16 @@ use File::Copy::Recursive (); # We ship this
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(make_work_dir src_conf_dir setup_cpanplus_dir setup_cpan_dir get_report_info);
+our @EXPORT_OK = qw(
+  make_work_dir
+  src_conf_dir
+  setup_cpanplus_dir
+  setup_cpan_dir
+  get_report_info
+  runsys
+  runsys_fatal
+  can_run
+);
 
 SCOPE: {
   my $conf_dir;
@@ -68,6 +77,36 @@ sub _get_report_info_reporter {
   die if not $tr;
   return { file => $file, grade => $tr->grade, distribution => $tr->distribution };
 }
+
+sub runsys {
+  my @cmd = @_;
+  my $ret = system(@cmd) and warn "Possibly failed to run command '@cmd': $!";
+  return $ret;
+}
+
+sub runsys_fatal {
+  my @cmd = @_;
+  system(@cmd) and die "Failed to run command '@cmd': $!"; # FIXME $?
+  return 0;
+}
+
+# From Module::Install::Can
+# check if we can run some command
+sub can_run {
+  my ($cmd) = @_;
+
+  my $_cmd = $cmd;
+  return $_cmd if (-x $_cmd or $_cmd = MM->maybe_command($_cmd));
+
+  for my $dir ((split /$Config::Config{path_sep}/, $ENV{PATH}), '.') {
+    next if $dir eq '';
+    my $abs = File::Spec->catfile($dir, $_[1]);
+    return $abs if (-x $abs or $abs = MM->maybe_command($abs));
+  }
+
+  return;
+}
+
 
 
 1;
