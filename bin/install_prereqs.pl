@@ -22,10 +22,8 @@ $ENV{AUTOMATED_TESTING} = 1;
 $ENV{PERL_MM_USE_DEFAULT} = 1;
 $ENV{PERL_EXTUTILS_AUTOINSTALL} = "--defaultdeps";
 
-if (not $is_host_perl) {
-  my $workdir = make_work_dir();
-  setup_cpan_dir($workdir);
-}
+my $workdir = make_work_dir();
+setup_cpan_dir($workdir);
 
 my $perl_type = $is_host_perl ? 'host_perl' : 'test_perl';
 

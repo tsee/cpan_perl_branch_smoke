@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use File::Spec;
 use File::Temp qw(tempdir);
+use File::Copy::Recursive (); # We ship this
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -28,7 +29,6 @@ sub setup_cpanplus_dir {
   my $workdir = shift;
   my $cpanpdir = File::Spec->catdir(src_conf_dir(), '.cpanplus');
 
-  require File::Copy::Recursive;
   File::Copy::Recursive::dircopy($cpanpdir, File::Spec->catdir($workdir, '.cpanplus')) or die $!;
 }
 
@@ -36,7 +36,6 @@ sub setup_cpan_dir {
   my $workdir = shift;
   my $cpandir = File::Spec->catdir(src_conf_dir(), '.cpan');
 
-  require File::Copy::Recursive;
   File::Copy::Recursive::dircopy($cpandir, File::Spec->catdir($workdir, '.cpan')) or die $!;
 }
 
