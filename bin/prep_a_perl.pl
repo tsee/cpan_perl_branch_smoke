@@ -23,11 +23,14 @@ GetOptions(
   'smoke-name|smoke_name|smokename=s'                     => \(my $smoke_name),
   'perl-install-base|perl_install_base|perlinstallbase=s' => \(my $perl_install_base),
   'grindperl-opt|grindperl_opt|grindperlopt=s'            => \(my @perl_opt),
+  'cpan-mirror|cpan_mirror|cpanmirror|mirror=s'           => \(my $cpan_mirror),
+  'no-test|no_test|notest'                                => \(my $no_test),
 ) or die "Invalid options";
 
 foreach my $req ([$smoke_branch, 'smoke-branch'],
                  [$smoke_name, 'smoke-name'],
-                 [$perl_install_base, 'perl-install-base'], )
+                 [$perl_install_base, 'perl-install-base'],
+                 [$cpan_mirror, 'cpan-mirror'], )
 {
   die "The '--$req->[1]' parameter is required" if not defined $req->[0];
 }
@@ -70,6 +73,13 @@ my $install_dir = File::Spec->catdir($perl_install_base, 'perl-' . $smoke_name);
 install_a_perl($perl_repo_dir => $install_dir, \@perl_opt);
 
 # install prerequisites
+runsys_fatal(
+  $^X,
+  File::Spec->catfile($RealBin, 'install_prereqs.pl'),
+  '--perl', File::Spec->catfile($install_dir, 'nbin', 'perl'),
+  '--mirror', $cpan_mirror,
+  ($no_test ? ('--no-test') : ()),
+);
 
 exit(0);
 
