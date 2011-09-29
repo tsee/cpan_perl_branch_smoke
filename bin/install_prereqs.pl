@@ -8,15 +8,30 @@ use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
 use MySmokeToolbox qw(make_work_dir setup_cpan_dir);
 
 GetOptions(
-  'is-host-perl' => \(my $is_host_perl),
-  'perl=s' => \(my $perl),
-  'm|mirror=s' => \(my $mirror),
+  'into-host-perl=s' => \(my $into_host_perl),
+  'config=s' => \(my $config_file),
+  'perl_name|perl-name|perlname=s' => \(my $perl_name),
   'no-test|notest' => \(my $notest),
 ) or die "Invalid options";
 
-defined $perl or die "Need target --perl!";
+(defined $into_host_perl || defined $perl_name)
+&& !(defined $into_host_perl && defined $perl_name)
+  or die "Need target perl as --into-host-perl=path XOR --perl-name=nameInConfig!";
+
+my $cfg = MySmokeToolbox::SmokeConfig->new($config_file);
+
+my $perl;
+if ($into_host_perl) {
+  $perl = $into_host_perl;
+}
+else {
+  $perl = $cfg->perl($perl_name)->executable;
+}
 -x $perl or die "Can't execute the target perl '$perl'!";
+
+my $mirror = $cfg->cpan_mirror;
 defined $mirror or die "Need source CPAN mirror!";
+
 $ENV{CPAN_MIRROR} = $mirror;
 $ENV{AUTOMATED_TESTING} = 1;
 $ENV{PERL_MM_USE_DEFAULT} = 1;
@@ -25,7 +40,7 @@ $ENV{PERL_EXTUTILS_AUTOINSTALL} = "--defaultdeps";
 my $workdir = make_work_dir();
 setup_cpan_dir($workdir);
 
-my $perl_type = $is_host_perl ? 'host_perl' : 'test_perl';
+my $perl_type = defined($into_host_perl) ? 'host_perl' : 'test_perl';
 
 my %modules = (
   test_perl => [

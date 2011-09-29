@@ -17,67 +17,65 @@ if (not can_run($GitCmd)) {
 }
 
 GetOptions(
-  'git-remote|git_remote|gitremote=s'                     => \(my $git_remote),
-  'local-repo|local_repo|localrepo=s'                     => \(my $local_repo),
-  'smoke-branch|smoke_branch|smokebranch=s'               => \(my $smoke_branch),
-  'smoke-name|smoke_name|smokename=s'                     => \(my $smoke_name),
-  'perl-install-base|perl_install_base|perlinstallbase=s' => \(my $perl_install_base),
-  'grindperl-opt|grindperl_opt|grindperlopt=s'            => \(my @perl_opt),
-  'cpan-mirror|cpan_mirror|cpanmirror|mirror=s'           => \(my $cpan_mirror),
-  'no-test|no_test|notest'                                => \(my $no_test),
+  my $opt = {},
+  'config=s',
+  'local_repo|local-repo|localrepo=s',
+  'perl_name|perl-name|perlname=s',
+  'no_test|no-test|notest'                                => \(my $no_test),
 ) or die "Invalid options";
 
-foreach my $req ([$smoke_branch, 'smoke-branch'],
-                 [$smoke_name, 'smoke-name'],
-                 [$perl_install_base, 'perl-install-base'],
-                 [$cpan_mirror, 'cpan-mirror'], )
+my $cfg = MySmokeToolbox::SmokeConfig->new($opt->{config});
+
+foreach my $req ([$opt->{perl_name}, 'perl-name'])
 {
   die "The '--$req->[1]' parameter is required" if not defined $req->[0];
 }
 
-if (not defined $git_remote and not defined $local_repo) {
-  die "Need either git-remote or local-repo options";
+if (not defined $cfg->perl_git_remote and not defined $opt->{local_repo}) {
+  die "Need either git-remote from config or local-repo option";
 }
 
-mkpath($perl_install_base);
+my $perlcfg = $cfg->perl($opt->{perl_name});
+
+$cfg->assert_perl_install_base;
 my $workdir = make_work_dir();
 
 # get a perl repo one way or another
 my $perl_repo_dir;
-if (defined $local_repo) {
+if (defined $opt->{local_repo}) {
   # update
-  if (-d $local_repo and -d File::Spec->catdir($local_repo, '.git'))
+  if (-d $opt->{local_repo} and -d File::Spec->catdir($opt->{local_repo}, '.git'))
   {
-    git_run($local_repo, 'fetch');
+    git_run($opt->{local_repo}, 'fetch');
   }
   else { # setup in specific path and keep around
-    File::Path::mkpath($local_repo);
-    $perl_repo_dir = setup_git_clone($git_remote, $local_repo);
+    File::Path::mkpath($opt->{local_repo});
+    $perl_repo_dir = setup_git_clone($cfg->perl_git_remote, $opt->{local_repo});
   }
 }
 else {
   # temporary
-  $perl_repo_dir = setup_git_clone($git_remote, File::Spec->catdir($workdir, 'perl-clone'));
+  $perl_repo_dir = setup_git_clone($cfg->perl_git_remote, File::Spec->catdir($workdir, 'perl-clone'));
 }
 
 # clean repo
 git_run($perl_repo_dir, 'clean', '-dxf');
 
 # checkout smoke branch
-git_run($perl_repo_dir, 'checkout', '--force', $smoke_branch);
+git_run($perl_repo_dir, 'checkout', '--force', $perlcfg->smoke_branch);
 
 print "Using perl source tree from: $perl_repo_dir\n";
 
 # install perl into perl-base
-my $install_dir = File::Spec->catdir($perl_install_base, 'perl-' . $smoke_name);
-install_a_perl($perl_repo_dir => $install_dir, \@perl_opt);
+my $install_dir = $perlcfg->install_dir;
+install_a_perl($perl_repo_dir => $install_dir, [$perlcfg->grindperl_opt]);
 
 # install prerequisites
 runsys_fatal(
   $^X,
   File::Spec->catfile($RealBin, 'install_prereqs.pl'),
-  '--perl', File::Spec->catfile($install_dir, 'bin', 'perl'),
-  '--mirror', $cpan_mirror,
+  '--perl', $perlcfg->executable,
+  '--mirror', $cfg->cpan_mirror,
   ($no_test ? ('--no-test') : ()),
 );
 
@@ -109,7 +107,7 @@ sub setup_perl_exe_links {
 
   die "Could not find perl binaries directory for symlinking '$bindir'" if not -d $bindir;
   my $d = pushd($bindir);
-  my @files = glob("*.5*");
+  my @files = glob("*5.*");
   foreach my $file (@files) {
     my $target = $file;
     $target =~ s/5\.\d+\.\d+$//;
@@ -133,7 +131,7 @@ sub setup_git_clone {
 
 sub git_run {
   my ($repo_path, @args) = @_;
-  croak("Undefined or nonexistent perl repoisority path") if not defined $repo_path or not -d $repo_path;
+  croak("Undefined or nonexistent perl reposority path") if not defined $repo_path or not -d $repo_path;
   my $p = pushd($repo_path);
   runsys_fatal($GitCmd, @args);
 }
