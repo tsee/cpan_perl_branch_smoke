@@ -5,6 +5,8 @@ use warnings;
 use File::Spec;
 use File::Temp qw(tempdir);
 use File::Copy::Recursive (); # We ship this
+use YAML::Tiny (); # We ship this
+use MySmokeToolbox::SmokeConfig;
 
 require Exporter;
 our @ISA = qw(Exporter);

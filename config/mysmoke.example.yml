@@ -1,0 +1,12 @@
+---
+name: 'magicflags2'
+cpan-mirror: 'file:///home/tsee/perl/minicpan'
+perl-git-remote: 'file:///home/tsee/bleadperl/perl-ssh'
+perl-install-base: '/tmp/testperls'
+perls:
+  - perl-name: 'reference'
+    smoke-branch: 'a3f424e51e225fc2e216af0ee9134dbcd2eaf300'
+    grindperl-opt: ~
+  - perl-name: 'magicflags2'
+    smoke-branch: 'chip/magicflags2'
+    grindperl-opt: ~
