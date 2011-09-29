@@ -16,7 +16,7 @@ In all of this, replace "~" with whereever you put your perl stuff.
 
 - Get a minicpan:
   $ minicpan -l ~/minicpan/ -r http://your_favourite_cpan_mirror
-  It makes sense not to modify/update this minicpan during the test run.
+  It makes sense NOT to modify/update this minicpan during the test run.
 
 - Build the two perls to compare (and install smoking modules into each):
   $ cd ~/perl.git; git checkout blead
