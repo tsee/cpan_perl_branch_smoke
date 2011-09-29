@@ -70,6 +70,9 @@ print "Using perl source tree from: $perl_repo_dir\n";
 my $install_dir = $perlcfg->install_dir;
 install_a_perl($perl_repo_dir => $install_dir, [$perlcfg->grindperl_opt]);
 
+# create symlinks
+setup_perl_exe_links($install_dir);
+
 # install prerequisites
 runsys_fatal(
   $^X,
