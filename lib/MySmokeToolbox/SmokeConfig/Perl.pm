@@ -29,6 +29,17 @@ sub executable {
   return File::Spec->catfile($self->install_dir, 'bin', 'perl');
 }
 
+sub smoke_report_output_dir {
+  my $self = shift;
+  # $basedir/$smokename/$perlname
+  return File::Spec->catdir($self->_parent->smoke_report_output_base, $self->_parent->name, $self->name);
+}
+
+sub assert_smoke_report_output_dir {
+  my $self = shift;
+  $self->_parent->_assert_dir($self->smoke_report_output_dir);
+}
+
 sub grindperl_opt {
   my $self = shift;
   my $opt = $self->{"grindperl-opt"}||[];

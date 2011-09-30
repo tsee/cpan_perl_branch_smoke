@@ -31,6 +31,8 @@ sub name { $_[0]->{name} }
 sub perl_git_remote { $_[0]->{"perl-git-remote"} }
 sub cpan_mirror { $_[0]->{"cpan-mirror"} }
 sub perl_install_base { $_[0]->{"perl-install-base"} }
+sub smoke_report_output_base { $_[0]->{"smoke-report-output-base"} }
+sub smoke_processes_per_perl { $_[0]->{"smoke-processes-per-perl"} }
 
 sub perl {
   my $self = shift;
@@ -51,8 +53,17 @@ sub perls {
 
 sub assert_perl_install_base {
   my $self = shift;
+  $self->_assert_dir($self->perl_install_base);
+}
+
+sub assert_smoke_report_output_base {
+  my $self = shift;
+  $self->_assert_dir($self->smoke_report_output_base);
+}
+
+sub _assert_dir {
   require File::Path;
-  File::Path::mkpath($self->perl_install_base);
+  File::Path::mkpath($_[1]);
   return 1;
 }
 
