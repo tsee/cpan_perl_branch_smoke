@@ -33,8 +33,8 @@ User Guide
 
 - Get a list of distributions to smoke:
   TODO: convert to using config file.
-  $ cd ~/cpanbranchtest; perl bin/get_dists.pl ~/minicpan/modules/02packages.details.txt.gz > to_smoke.txt
-  Feel free to manually specify dist files or module names instead!
+  $ cd ~/cpanbranchtest; perl bin/get_dists.pl --config=myconfig.yml > to_smoke.txt
+  You can manually specify dist files or module names in a text instead!
 
 - The big, slow step: Run the smoker for each perl:
   $ cd ~/cpanbranchtest
@@ -45,6 +45,9 @@ User Guide
   and restart it with the same output directory. It won't reprocess
   distributions for which a report exists. If you need to start from scratch,
   use the --restart-from-scratch smoker option.
+  Be aware that restarting will require re-building the distributions that are
+  depended on by those still outstanding, so it can lead to quite some duplicate
+  work. The same applies to parallelization, btw.
 
 - Compare the output
   TODO: convert to using config file.
@@ -72,6 +75,7 @@ perl-git-remote: 'file:///home/tsee/bleadperl/perl-ssh'
 perl-install-base: '/tmp/testperls'
 smoke-report-output-base: '/home/tsee/cpan_smoke_out'
 smoke-processes-per-perl: 7
+tmpdir: /tmp
 perls:
   - perl-name: 'reference'
     smoke-branch: 'a3f424e51e225fc2e216af0ee9134dbcd2eaf300'
@@ -98,6 +102,8 @@ Should be straight-forward, but let's walk through the fields:
   dedicate to smoking a single perl. A slight overcommittment of the
   hardware may make sense since there's still some modules that wait
   on STDIN until killed by the timeout.
+- 'tmpdir' (defaults to File::Spec->tmpdir) can be pointed at a custom
+  scratch directory to use for the (large!) work & build directories.
 - 'perls' is an array of configurations for perls to smoke.
   Right now, it's only been tested with two -- the reporting script
   doesn't handle more. TODO
