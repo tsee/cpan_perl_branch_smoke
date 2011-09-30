@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Mostly unchanged from David Golden's original script.
+# Based on David Golden's work.
 use 5.010;
 use strict;
 use warnings;
@@ -13,10 +13,9 @@ use MySmokeToolbox qw(get_report_info);
 
 my @spec = (
   # required
-  Param("reference-dir", sub { -d } )->required,
-  Param("test-dir", sub { -d } )->required,
+  Param("config", sub { -r } )->required,
+  List("perl_name|perl-name|perlname", sub {})->required,
   Param("output-dir", sub { 1 } )->required,
-  #Param("list|L", sub { -r } )->required,
   # optional
   Switch("html"),
   Switch("help|h"),
@@ -27,10 +26,10 @@ my $usage = << "ENDHELP";
 usage: $0 <required options> <other options>
 
 REQUIRED OPTIONS:
-  --reference-dir       directory containing reports from reference perl
-  --test-dir            directory containing reports from test perl
+  --config              path to the configuration YAML file
+  --perl-name           names of perl smokes to compare (see config).
+                        must occurr at least twice
   --output-dir          output directory
-  --list|-L   FILE      file with list of dists to test
   --skip-missing        skip all dists where either one of the perls
                         is missing the report
 
@@ -46,18 +45,21 @@ if ( grep { /^(?:--help|-h)$/ } @ARGV ) {
 
 my $opt = Getopt::Lucid->getopt( \@spec );
 
+my $configfile = $opt->get_config;
+my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
+my @perlnames = $opt->get_perl_name;
+if (not @perlnames >= 2) {
+  die "Need at least two perl smokes to compare (use --perl-name=...)\n";
+}
+
 my $output_dir = dir( $opt->get_output_dir )->absolute;
-#my $list = file($opt->get_list)->absolute;
-my $old_report_dir = dir($opt->get_reference_dir)->absolute;
-my $new_report_dir = dir($opt->get_test_dir)->absolute;
+my @report_dirs = map dir($cfg->perl($_)->smoke_report_output_dir)->absolute, @perlnames;
+
+my $old_report_dir = $report_dirs[0];
+my $new_report_dir = $report_dirs[1];
 my $skip_missing = $opt->get_skip_missing;
 
 my $suffix = qr{\.(?:tar\.(?:bz2|gz|Z)|t(?:gz|bz)|(?<!ppm\.)zip|pm.gz)$}i; 
-
-#my %mb_dists = map {
-#  s{^.+/(.*)$suffix}{$1};
-#  ( $_ => 1 )
-#} $list->slurp( chomp => 1 );
 
 my %old = read_results( $old_report_dir );
 my %new = read_results( $new_report_dir );
@@ -107,8 +109,6 @@ my $ndiff = 0;
 my $dist_grades_old = {};
 my $dist_grades_new = {};
 for my $d ( sort keys %all_dists ) {
-  #next unless exists $mb_dists{$d};
-
   if (exists $old{$d}) {
     $dist_grades_old->{$old{$d}{grade}}++;
   }
