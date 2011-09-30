@@ -21,22 +21,22 @@ use constant DEBUG => 1;
 $|=1;
 
 GetOptions(
-  'perl=s' => \(my $perl),
-  'perlname=s' => \(my $perlname),
-  'm|mirror=s' => \(my $mirror),
-  'o|outdir=s' => \(my $outdir),
-  'restart' => \(my $restart),
-  'processes=i' => \(my $processes),
+  'config=s'                                                     => \(my $configfile),
+  'perl_name|perl-name|perlname=s'                               => \(my $perlname),
+  'restart_from_scratch|restart-from-scratch|restartfromscratch' => \(my $restart),
 );
 
-die "No 'perl' specified\n" unless $perl;
-defined $mirror or die "Need source CPAN mirror!";
-defined $outdir or die "Need output directory!";
-defined $perlname or die "Need a name assigned to the perl we're testing!";
+my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
+my $perlcfg = $cfg->perl($perlname);
+my $processes = $cfg->smoke_processes_per_perl;
+$processes = 1 if not $processes;
+my $mirror = $cfg->cpan_mirror;
+my $perl = $perlcfg->executable;
+
 die "No modules specified to smoke\n" unless scalar @ARGV;
 
-$outdir = File::Spec->catdir(abs_path($outdir), "perl-$perlname");
-$processes = 1 if not $processes;
+$perlcfg->assert_smoke_report_output_dir;
+my $outdir = $perlcfg->smoke_report_output_dir;
 
 if ($restart) {
   local $| = 1;
@@ -49,12 +49,11 @@ if ($restart) {
   }
 
   File::Path::rmtree($outdir); # nuke progress
+  $perlcfg->assert_smoke_report_output_dir;
 }
 
 # prepare output dir
-File::Path::mkpath($outdir);
 $ENV{CPAN_REPORTER_OUTPUT_DIR} = $outdir;
-
 $ENV{CPANMIRROR} = $mirror;
 
 # read dist list from files in @ARGV or use the module names provided.
@@ -107,7 +106,8 @@ setup_cpanplus_dir($workdir);
 # Okay, I admit that it looks like SmokeBox can run many smokers
 # in parallel, but the interface still eludes me and doesn't seem
 # to be geared towards dividing work between multiple cores but rather
-# smoking the same modules on multiple perls (which would be useful, too).
+# smoking the same modules on multiple perls (which would be useful, too,
+# but not at all the primary objective of the above fork hacks).
 
 my $smokebox = POE::Component::SmokeBox->spawn();
 
