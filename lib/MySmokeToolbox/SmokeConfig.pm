@@ -34,6 +34,22 @@ sub perl_install_base { $_[0]->{"perl-install-base"} }
 sub smoke_report_output_base { $_[0]->{"smoke-report-output-base"} }
 sub smoke_processes_per_perl { $_[0]->{"smoke-processes-per-perl"} }
 
+SCOPE: {
+  my $tmpdir;
+  sub tmpdir {
+    my $self = shift;
+    return $tmpdir if defined $tmpdir;
+
+    foreach my $test ($self->{tmpdir}, File::Spec->tmpdir) {
+      if (defined $test and -r $test) {
+        $tmpdir = $test;
+        return $tmpdir;
+      }
+    }
+    die "Failed to figure out temp directory"
+  }
+} # END SCOPE
+
 sub perl {
   my $self = shift;
   my $perlname = shift;

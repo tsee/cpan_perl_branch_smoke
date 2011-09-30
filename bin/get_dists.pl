@@ -1,7 +1,25 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-my $packages_file = shift or die;
+use File::Spec;
+use FindBin qw($RealBin);
+use Getopt::Long qw(GetOptions);
+
+use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
+
+use MySmokeToolbox;
+
+GetOptions(
+  'config=s' => \(my $configfile),
+) or die "Invalid options";
+
+my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
+my $cpanmirror = $cfg->cpan_mirror;
+
+die "Only local CPAN mirrors supported for now"
+  unless $cpanmirror =~ s/^file:\/\///;
+
+my $packages_file = File::Spec->catfile($cpanmirror, 'modules', '02packages.details.txt.gz');
 
 open my $fh, 'gzip -d -c ' . $packages_file . ' |' or die $!;
 my %dists;

@@ -20,9 +20,11 @@ sub _new {
 
 sub name { $_[0]->{"perl-name"} }
 sub smoke_branch { $_[0]->{"smoke-branch"} }
+
 sub install_dir {
   my $self = shift;
-  return File::Spec->catdir($self->_parent->perl_install_base, 'perl-' . $self->name);
+  # $basedir/$smokename/perl-$perlname
+  return File::Spec->catdir($self->_parent->perl_install_base, $self->_parent->name, 'perl-' . $self->name);
 }
 sub executable {
   my $self = shift;

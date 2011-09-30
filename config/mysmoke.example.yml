@@ -5,6 +5,7 @@ perl-git-remote: 'file:///home/tsee/bleadperl/perl-ssh'
 perl-install-base: '/tmp/testperls'
 smoke-report-output-base: '/home/tsee/cpan_smoke_out'
 smoke-processes-per-perl: 7
+tmpdir: '/tmp'
 perls:
   - perl-name: 'reference'
     smoke-branch: 'a3f424e51e225fc2e216af0ee9134dbcd2eaf300'
