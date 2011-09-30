@@ -5,45 +5,49 @@ parallelization and restarting comes at a very high cost in terms of
 redoing work (for all dependencies of the dists to test), and that the
 whole thing is all but user friendly. --Steffen
 
-User guide:
-In all of this, replace "~" with whereever you put your perl stuff.
+TODO: Validate that the CPAN config works without host perl config being
+properly set up. This matters only for bootstrapping.
+
+User Guide
+==========
+
+- Create a new smoke configuration file (YAML). You can find examples
+  in the config/ subdirectory.
+  See the definition of the various fields below the User Guide.
+  For the sake of this guide, assume that there's two perl's configured
+  that have the names 'reference' and 'test'.
+
+- Get a minicpan: (CPAN::Mini required, see next step)
+  $ minicpan -l ~/minicpan/ -r http://your_favourite_cpan_mirror
+  It makes sense NOT to modify/update this minicpan during the test run!
 
 - Install all the required smoker modules in an unrelated perl. Can be the system perl,
   your own, whatever.
-  => Either use the slightly questionable
-     "sudo perl bin/install_prereqs.pl --is-host-perl --perl=`which perl` --mirror=..."
+  => Either use the slightly questionable (because of the sudo)
+     "sudo perl bin/install_prereqs.pl --is-host-perl --perl=`which perl` --config=myconfig.yml"
   => Or manually install the host_perl modules listed in bin/install_prereqs.pl.
 
-- Get a minicpan:
-  $ minicpan -l ~/minicpan/ -r http://your_favourite_cpan_mirror
-  It makes sense NOT to modify/update this minicpan during the test run.
-
 - Build the two perls to compare (and install smoking modules into each):
-  $ cd ~/perl.git; git checkout blead
-  $ grindperl --prefix=~/install-reference --porting --install
-  $ cd ~/cpanbranchtest; perl bin/install_prereqs.pl --perl=~/install-reference/bin/perl --mirror=~/minicpan
-  (This may require a perl version after bin/perl...)
-
-  $ cd ~/perl.git; git checkout testbranch
-  $ grindperl --prefix=~/install-testbranch --porting --install
-  $ cd ~/cpanbranchtest; perl bin/install_prereqs.pl --perl=~/install-testbranch/bin/perl --mirror=~/minicpan
+  $ cd ~/cpanbranchtest; perl bin/prep_a_perl --config=myconfig.yml --perl-name=reference
+  $ cd ~/cpanbranchtest; perl bin/prep_a_perl --config=myconfig.yml --perl-name=test
 
 - Get a list of distributions to smoke:
+  TODO: convert to using config file.
   $ cd ~/cpanbranchtest; perl bin/get_dists.pl ~/minicpan/modules/02packages.details.txt.gz > to_smoke.txt
   Feel free to manually specify dist files or module names instead!
 
 - The big, slow step: Run the smoker for each perl:
   $ cd ~/cpanbranchtest
-  $ perl bin/smoker.pl --perlname=testbranch --outdir=out --mirror=file://~/minicpan/ --perl=~/install-testbranch/bin/perl to_smoke.txt
-  $ perl bin/smoker.pl --perlname=reference  --outdir=out --mirror=file://~/minicpan/ --perl=~/install-reference/bin/perl  to_smoke.txt
+  $ perl bin/smoker.pl --config=myconfig.yml --perlname=reference to_smoke.txt
+  $ perl bin/smoker.pl --config=myconfig.yml --perlname=test to_smoke.txt
 
-  If you have a beefy machine with many cores, you parallelize the work with
-  the --processes=$N option of smoker.pl.
   At (presumably) any point during the run, you can kill the smoker process
   and restart it with the same output directory. It won't reprocess
-  distributions for which a report exists.
+  distributions for which a report exists. If you need to start from scratch,
+  use the --restart-from-scratch smoker option.
 
 - Compare the output
+  TODO: convert to using config file.
   $ perl bin/compare-report-dirs.pl --output-dir=html_out --reference-dir=out/perl-reference/ --test-dir=out/perl-testbranch/ --html
   (This may take a while...)
   $ firefox html_out/index.html
@@ -52,4 +56,59 @@ In all of this, replace "~" with whereever you put your perl stuff.
   To avoid lots of "missing" vs. "pass" result differences, pass the
   --skip-missing option to compare-report-dirs.pl.
 
+- The smoker will run for a few days.
+  (My test run: Two perls, 4-core/8-thread Xeon, 14 smoker processes => 4 days)
+
+
+Configuration File
+==================
+
+Here's a complete one:
+
+---
+name: 'magicflags2'
+cpan-mirror: 'file:///home/tsee/perl/minicpan'
+perl-git-remote: 'file:///home/tsee/bleadperl/perl-ssh'
+perl-install-base: '/tmp/testperls'
+smoke-report-output-base: '/home/tsee/cpan_smoke_out'
+smoke-processes-per-perl: 7
+perls:
+  - perl-name: 'reference'
+    smoke-branch: 'a3f424e51e225fc2e216af0ee9134dbcd2eaf300'
+    grindperl-opt: ~
+  - perl-name: 'magicflags2'
+    smoke-branch: 'chip/magicflags2'
+    grindperl-opt: ~
+
+Should be straight-forward, but let's walk through the fields:
+
+- 'name' indicates the name of the smoke run. It will be used in path
+  names, so don't use funny characters.
+- 'cpan-mirror' should point at a minicpan or local CPAN mirror that
+  must not change during the smoke run. I generally create a fresh
+  minicpan per smoke run.
+- 'perl-git-remote' is the URL of a git remote to clone from for
+  building the test perls.
+- 'perl-install-base' is the base directory where all of the test
+  perls will be installed.
+- 'smoke-report-output-base' is the base directory under which the
+  directories for the CPAN tester report files will be created.
+  This is the per-module reports, not the final smoke report.
+- 'smoke-processes-per-perl' indicates the number of processes to
+  dedicate to smoking a single perl. A slight overcommittment of the
+  hardware may make sense since there's still some modules that wait
+  on STDIN until killed by the timeout.
+- 'perls' is an array of configurations for perls to smoke.
+  Right now, it's only been tested with two -- the reporting script
+  doesn't handle more. TODO
+=> 'perl-name' the name to use to refer to this test perl. This name
+   is used both in paths and on the command line of various tools which
+   operate on a single smoke-perl.
+=> 'smoke-branch' is the commit SHA1 or branch name of the perl to smoke.
+=> 'grindperl-opt' is an array reference (or undef) of command line
+   options to pass to the 'grindperl' script when building the test
+   perls. Something as simple as:
+   grindperl-opt:
+     - '-Dusethreads'
+   should work, but is untested.
 
