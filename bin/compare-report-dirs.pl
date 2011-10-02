@@ -14,7 +14,7 @@ use MySmokeToolbox qw(get_report_info);
 my @spec = (
   # required
   Param("config", sub { -r } )->required,
-  List("perl_name|perl-name|perlname", sub {})->required,
+  List("perl_name|perl-name|perlname"),
   Param("output-dir", sub { 1 } )->required,
   # optional
   Switch("html"),
@@ -48,37 +48,42 @@ my $opt = Getopt::Lucid->getopt( \@spec );
 my $configfile = $opt->get_config;
 my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
 my @perlnames = $opt->get_perl_name;
-if (not @perlnames >= 2) {
+if (@perlnames == 1) {
   die "Need at least two perl smokes to compare (use --perl-name=...)\n";
 }
+elsif (@perlnames == 0) {
+  @perlnames = map $_->name, $cfg->perls;
+}
 
-my $output_dir = dir( $opt->get_output_dir )->absolute;
-my @report_dirs = map dir($cfg->perl($_)->smoke_report_output_dir)->absolute, @perlnames;
-
-my $old_report_dir = $report_dirs[0];
-my $new_report_dir = $report_dirs[1];
 my $skip_missing = $opt->get_skip_missing;
 
-my $suffix = qr{\.(?:tar\.(?:bz2|gz|Z)|t(?:gz|bz)|(?<!ppm\.)zip|pm.gz)$}i; 
+my $output_dir = dir( $opt->get_output_dir )->absolute;
+my @perlspecs = map $cfg->perl($_), @perlnames;
+my @report_dirs = map dir($_->smoke_report_output_dir)->absolute, @perlspecs;
 
-my %old = read_results( $old_report_dir );
-my %new = read_results( $new_report_dir );
+# array of hashrefs containing distname => infohash
+my @results = map +{read_results($_)}, @report_dirs;
 
-warn "Results old: " . scalar(keys %old) . "\n";
-warn "Results new: " . scalar(keys %new) . "\n";
+foreach my $iperl (0.. $#perlspecs) {
+  warn "Number of results for '" . $perlspecs[$iperl]->name . "': " . scalar(keys(%{$results[$iperl]})) . "\n";
+}
 
-my %all_dists = map { $_ => 1 } keys %old, keys %new;
+my %all_dists;
+foreach my $result (@results) {
+  $all_dists{$_} = 1 for keys %$result;
+}
 
 warn "Total dists: " . scalar(keys %all_dists) . "\n";
 
+my @web_report_outdirs;
 my $html_fh;
 if ( $opt->get_html ) {
-  $output_dir->subdir("web-old")->rmtree;
-  $output_dir->subdir("web-old")->mkpath;
-  $output_dir->subdir("web-new")->rmtree;
-  $output_dir->subdir("web-new")->mkpath;
+  @web_report_outdirs = map $output_dir->subdir("web-" . $_->name), @perlspecs;
+  $_->rmtree, $_->mkpath for @web_report_outdirs;
+
   open $html_fh, ">", $output_dir->file("index.html");
   my $timestamp = localtime();
+
   print {$html_fh} <<"HTML";
 <html>
 <head><title>Regression test</title>
@@ -96,61 +101,93 @@ if ( $opt->get_html ) {
 </head>
 <body><h1>Regresssion test</h1>
 <p>Generated at $timestamp.</p>
-<table><tr><th>Old</th><th>New</ht><th>Dist</th></tr>
+<table><tr>
 HTML
+  foreach my $perl (@perlspecs) {
+    print {$html_fh} "<th>" . $perl->name . "</th>";
+  }
+  print {$html_fh} "<th>Distribution</th></tr>\n";
 }
 else {
-  printf "%8s %8s %s\n", @$_ for ["  old  ", "  new  ", "dist"], [qw/------ ------ -------/];
+  for ([map {substr($_, 0, 8)} ((map $_->name, @perlspecs), "dist")], [('------') x scalar(@perlspecs), '-------']) {
+    printf(
+      ("%8s " x scalar(@perlspecs)) . "%s\n",
+      @$_
+    );
+  }
 }
 
-my $nsame = 0;
-my $nmissing = 0;
-my $ndiff = 0;
-my $dist_grades_old = {};
-my $dist_grades_new = {};
+#my $nsame = 0;
+#my $nmissing = 0;
+#my $ndiff = 0;
+
+# FIXME by turning the data structures inside out, this could become much faster...
+
+# One grade hash per perl
+my @dist_grades = map +{}, @perlspecs;
 for my $d ( sort keys %all_dists ) {
-  if (exists $old{$d}) {
-    $dist_grades_old->{$old{$d}{grade}}++;
+  my @grades = map $results[$_]{$d}{grade}, (0..$#perlspecs);
+
+  foreach my $iperl (0..$#perlspecs) {
+    if (defined $grades[$iperl]) {
+      $dist_grades[$iperl]{ $grades[$iperl] }++;
+    }
   }
-  if (exists $new{$d}) {
-    $dist_grades_new->{$new{$d}{grade}}++;
+  
+  my $this_nmissing = scalar(grep !defined, @grades);
+
+  # Skip if we just have one result and --skip-missing
+  next if $skip_missing and $this_nmissing == @grades-1;
+
+  my $firstgrade;
+  SCOPE: {
+    my $gradeno = 0;
+    while (!defined($firstgrade)) {
+      $firstgrade = $grades[$gradeno++];
+    }
   }
 
-  ++$nsame, next if exists $old{$d} && exists $new{$d} 
-                    && $old{$d}{grade} eq $new{$d}{grade};
-  my $old_grade = $old{$d}{grade} || 'missing';
-  my $new_grade = $new{$d}{grade} || 'missing';
-  if ($skip_missing and $old_grade eq 'missing' || $new_grade eq 'missing') {
-    ++$nmissing;
-    next;
-  }
-  ++$ndiff;
+  # Skip all dists that have consistently the same result
+  next if (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
+
+  #++$nsame, next if exists $old{$d} && exists $new{$d} 
+  #                  && $old{$d}{grade} eq $new{$d}{grade};
+
+  $_ ||= 'missing' for @grades;
+
+  #my $old_grade = $old{$d}{grade} || 'missing';
+  #my $new_grade = $new{$d}{grade} || 'missing';
+  #if ($skip_missing and $old_grade eq 'missing' || $new_grade eq 'missing') {
+  #  ++$nmissing;
+  #  next;
+  #}
+  #++$ndiff;
 
   if ( $opt->get_html ) {
-    my $old_path = exists $old{$d}{file} ? $old{$d}{file}->relative( $old_report_dir ) : '';
-    my $new_path = exists $new{$d}{file} ? $new{$d}{file}->relative( $new_report_dir ) : '';
-    my ($old_copy, $new_copy); 
-    if ( $old_path ) { 
-      $old_copy = $output_dir->subdir("web-old")->file($old{$d}{file}->basename . ".txt"); 
-#      print "old: copying '$old{$d}{file}' to '$old_copy'\n";
-      copy( "$old{$d}{file}" => "$old_copy" ) or die "copy failed: $!";
-      $old_copy = $old_copy->relative( $output_dir );
-    }
-    if ( $new_path ) { 
-      $new_copy = $output_dir->subdir("web-new")->file($new{$d}{file}->basename . ".txt"); 
-#      print "new: copying '$new{$d}{file}' to '$new_copy'\n";
-      copy( "$new{$d}{file}" => "$new_copy" ) or die "copy failed: $!";
-      $new_copy = $new_copy->relative( $output_dir );
+    my @rel_report_paths = map { exists $results[$_]{$d}{file} ? $results[$_]{$d}{file}->relative($report_dirs[$_]) : '' } (0..$#perlspecs);
+
+    # make the actual report text files available in the output dir
+    my @file_copies;
+    foreach my $ipath (0..$#rel_report_paths) {
+      next if not $rel_report_paths[$ipath];
+      push @file_copies, $web_report_outdirs[$ipath]->file($results[$ipath]{$d}{file}->basename . ".txt");
+      copy( "" . $results[$ipath]{$d}{file} => $file_copies[-1] ) or die "copy failed: $!";
+      $file_copies[-1] = $file_copies[-1]->relative( $output_dir );
     }
     print {$html_fh} qq{<tr>\n};
-    print {$html_fh} colorspan($old_grade, $old_copy);
-    print {$html_fh} colorspan($new_grade, $new_copy);
+
+    foreach my $iperl (0..$#perlspecs) {
+      print {$html_fh} colorspan($grades[$iperl], $file_copies[$iperl]);
+    }
+
     print {$html_fh} qq{  <td><a href="http://search.cpan.org/dist/$d">$d</a></td>\n</tr>\n};
   }
   else {
-    printf "%8s %8s %s\n", $old_grade, $new_grade, $d;
+    printf( ("%8s " x scalar(@perlspecs)) . "%s\n", @grades, $d);
   }
 }
+
+=for comment
 
 if ( $opt->get_html ) {
   print {$html_fh} "</table>\n";
@@ -192,16 +229,27 @@ HERE
   close $html_fh;
 }
 
+=cut
+
+
+#########################################################
+
 sub read_results {
   my ($dir) = @_;
   my %results;
-  my @files = $dir->children;
+  #my @files = $dir->children; # SLOOOOW
+  # This may not be as portable, but seriously, Path::Class && File::Spec are slow as molasses
+  my $dirstr = "$dir";
+  opendir my $dh, $dirstr or die $!;
+  my @files = grep -f, map "$dirstr/$_", readdir($dh);
+  closedir($dh);
   print scalar(@files) . " files to process...\n";
   my $i = 0;
   for my $f ( @files ) {
     ++$i;
-    printf("  %.1f%%\n", $i/scalar(@files)*100) if not $i % 100;
+    printf("  %.1f%%\n", $i/scalar(@files)*100) if $i % 1000 == 0;
     my $info = eval { get_report_info($f) };
+    $info->{file}=file($info->{file});
     warn("Can't get report info for '$f'\n"), next if not $info;
     #if (exists $results{$info->{distribution}}) {
     #  warn "Duplicate dist: " . $info->{distribution};
@@ -214,8 +262,9 @@ sub read_results {
 sub colorspan {
   my ($grade, $path) = @_;
   my $color;
-  return $path  ? qq{  <td class="grade $grade"><a href="$path">$grade</a></td>\n} 
-                : qq{  <td class="grade $grade">$grade</td>\n};
+  return defined($path)
+          ? qq{  <td class="grade $grade"><a href="$path">$grade</a></td>\n} 
+          : qq{  <td class="grade $grade">$grade</td>\n};
 }
 
 
