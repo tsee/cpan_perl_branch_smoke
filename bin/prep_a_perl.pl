@@ -20,22 +20,24 @@ GetOptions(
   my $opt = {},
   'config=s',
   'local_repo|local-repo|localrepo=s',
-  'perl_name|perl-name|perlname=s',
+  'perl_name|perl-name|perlname=s@',
   'no_test|no-test|notest'                                => \(my $no_test),
 ) or die "Invalid options";
 
 my $cfg = MySmokeToolbox::SmokeConfig->new($opt->{config});
 
-foreach my $req ([$opt->{perl_name}, 'perl-name'])
-{
-  die "The '--$req->[1]' parameter is required" if not defined $req->[0];
+my @perlnames;
+if (not defined $opt->{perl_name} or not ref($opt->{perl_name}) eq 'ARRAY') {
+  @perlnames = map $_->name, $cfg->perls;
 }
+else {
+  @perlnames = @{$opt->{perl_name}};
+}
+my @perls = grep defined($_->smoke_branch), map $cfg->perl($_), @perlnames;
 
 if (not defined $cfg->perl_git_remote and not defined $opt->{local_repo}) {
   die "Need either git-remote from config or local-repo option";
 }
-
-my $perlcfg = $cfg->perl($opt->{perl_name});
 
 $cfg->assert_perl_install_base;
 my $workdir = make_work_dir();
@@ -58,30 +60,33 @@ else {
   $perl_repo_dir = setup_git_clone($cfg->perl_git_remote, File::Spec->catdir($workdir, 'perl-clone'));
 }
 
-# clean repo
-git_run($perl_repo_dir, 'clean', '-dxf');
+foreach my $perlcfg (@perls) {
+  print "Processing perl '" . $perlcfg->name . "'...\n";
+  # clean repo
+  git_run($perl_repo_dir, 'clean', '-dxf');
 
-# checkout smoke branch
-git_run($perl_repo_dir, 'checkout', '--force', $perlcfg->smoke_branch);
+  # checkout smoke branch
+  git_run($perl_repo_dir, 'checkout', '--force', $perlcfg->smoke_branch);
 
-print "Using perl source tree from: $perl_repo_dir\n";
+  print "Using perl source tree from: $perl_repo_dir\n";
 
-# install perl into perl-base
-my $install_dir = $perlcfg->install_dir;
-install_a_perl($perl_repo_dir => $install_dir, [$perlcfg->grindperl_opt]);
+  # install perl into perl-base
+  my $install_dir = $perlcfg->install_dir;
+  install_a_perl($perl_repo_dir => $install_dir, [$perlcfg->grindperl_opt]);
 
-# create symlinks
-setup_perl_exe_links($install_dir);
+  # create symlinks
+  setup_perl_exe_links($install_dir);
 
-# install prerequisites
-runsys_fatal(
-  $^X,
-  File::Spec->catfile($RealBin, 'install_prereqs.pl'),
-  '--config' => $opt->{config},
-  '--perl_name', $perlcfg->name,
-  #'--mirror', $cfg->cpan_mirror,
-  ($no_test ? ('--no-test') : ()),
-);
+  # install prerequisites
+  runsys_fatal(
+    $^X,
+    File::Spec->catfile($RealBin, 'install_prereqs.pl'),
+    '--config' => $opt->{config},
+    '--perl_name', $perlcfg->name,
+    #'--mirror', $cfg->cpan_mirror,
+    ($no_test ? ('--no-test') : ()),
+  );
+}
 
 exit(0);
 
