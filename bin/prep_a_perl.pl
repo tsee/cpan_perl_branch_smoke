@@ -7,6 +7,7 @@ use FindBin qw($RealBin);
 use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
 use MySmokeToolbox qw(make_work_dir can_run runsys runsys_fatal);
 
+use Carp qw(croak);
 use File::Path qw(mkpath);
 use File::pushd qw(pushd);
 use ExtUtils::MakeMaker ();
@@ -49,6 +50,7 @@ if (defined $opt->{local_repo}) {
   if (-d $opt->{local_repo} and -d File::Spec->catdir($opt->{local_repo}, '.git'))
   {
     git_run($opt->{local_repo}, 'fetch');
+    $perl_repo_dir = $opt->{local_repo};
   }
   else { # setup in specific path and keep around
     File::Path::mkpath($opt->{local_repo});
@@ -141,7 +143,7 @@ sub setup_git_clone {
 
 sub git_run {
   my ($repo_path, @args) = @_;
-  croak("Undefined or nonexistent perl reposority path") if not defined $repo_path or not -d $repo_path;
+  croak("Undefined or nonexistent perl reposority path '$repo_path'") if not defined $repo_path or not -d $repo_path;
   my $p = pushd($repo_path);
   runsys_fatal($GitCmd, @args);
 }
