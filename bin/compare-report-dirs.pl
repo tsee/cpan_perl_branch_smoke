@@ -40,7 +40,7 @@ ENDHELP
 
 # XXX nasty hack until Getopt::Lucid has better help
 if ( grep { /^(?:--help|-h)$/ } @ARGV ) {
-  print STDERR "$usage\n" and exit 
+  print STDERR "$usage\n" and exit
 }
 
 my $opt = Getopt::Lucid->getopt( \@spec );
@@ -117,9 +117,15 @@ else {
   }
 }
 
-#my $nsame = 0;
-#my $nmissing = 0;
-#my $ndiff = 0;
+my $nexist_all = 0; # dists in all datasets
+my $nexist_multi = 0; # dists in multiple datasets
+my $nsame = 0; # identical results across all perls
+my $ndiff = 0; # different results for at least one perl
+# Number of identical / differing results per perl-perl combination
+my @pairwise_nsame = map [(0) x scalar(@perlspecs)], (0..$#perlspecs); # matrix
+my @pairwise_ndiff = map [(0) x scalar(@perlspecs)], (0..$#perlspecs); # matrix
+# Number of missing distribitions per perl
+my @nmissing = ((0) x scalar(@perlspecs)); # vector
 
 # FIXME by turning the data structures inside out, this could become much faster...
 
@@ -133,8 +139,31 @@ for my $d ( sort keys %all_dists ) {
       $dist_grades[$iperl]{ $grades[$iperl] }++;
     }
   }
-  
-  my $this_nmissing = scalar(grep !defined, @grades);
+
+  # Gather some stats
+  my $this_nmissing = 0;
+  foreach my $iperl (0..$#perlspecs) {
+    if (not defined($grades[$iperl])) {
+      ++$this_nmissing;
+      ++$nmissing[$iperl];
+    }
+
+    foreach my $iperl2 (0.. $#perlspecs) {
+      my $increment_ary;
+      if (!defined($grades[$iperl])) {
+        $increment_ary = !defined($grades[$iperl2]) ? \@pairwise_nsame : \@pairwise_ndiff;
+      }
+      else { # $iperl defined
+        $increment_ary = !defined($grades[$iperl2]) ? \@pairwise_ndiff : \@pairwise_nsame;
+      }
+
+      ++$increment_ary->[$iperl][$iperl2];
+      ++$increment_ary->[$iperl2][$iperl];
+    }
+  }
+
+  ++$nexist_all if $this_nmissing == 0;
+  ++$nexist_multi if scalar(@perlspecs) - $this_nmissing >= 2;
 
   # Skip if we just have one result and --skip-missing
   next if $skip_missing and $this_nmissing == @grades-1;
@@ -148,10 +177,8 @@ for my $d ( sort keys %all_dists ) {
   }
 
   # Skip all dists that have consistently the same result
-  next if (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
-
-  #++$nsame, next if exists $old{$d} && exists $new{$d} 
-  #                  && $old{$d}{grade} eq $new{$d}{grade};
+  ++$nsame, next if (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
+  ++$ndiff;
 
   $_ ||= 'missing' for @grades;
 
@@ -187,22 +214,35 @@ for my $d ( sort keys %all_dists ) {
   }
 }
 
-=for comment
-
 if ( $opt->get_html ) {
   print {$html_fh} "</table>\n";
 
-  my %grades = map {$_=>1} (keys %$dist_grades_old, keys %$dist_grades_new);
-  my @grades = sort keys %grades;
-  my %grade_totals = map {$_ => ($dist_grades_new->{$_}||0) + ($dist_grades_old->{$_}||0)} @grades;
-
   print {$html_fh} <<HERE;
 <p>
-  Distributions in both data sets: $nsame<br/>
-  Distributions missing in one data set: $nmissing<br/>
-  Distributions that differ: $ndiff
-</p>
+  Distributions in all data sets: $nexist_all<br/>
+  Distributions in at least two sets: $nexist_multi<br/>
+  Distributions with identical grade across all perls: $nsame<br/>
+  Distributions with differing grade in some perls: $ndiff<br/>
+  <table border="0" cellpadding="2" cellspacing="0">
+    <tr>
+HERE
 
+  print {$html_fh} "    <th>" . $_->name . "</th>" for @perlspecs;
+  print {$html_fh} "</tr>\n    <tr>";
+  print {$html_fh} "<td>$_</td>" for @nmissing;
+  print {$html_fh} <<HERE;
+    </tr>
+  </table>
+</p>
+HERE
+
+  my %grades;
+  foreach my $gradeset (@dist_grades) {
+    ++$grades{$_} for keys %$gradeset;
+  }
+  my @grades = sort keys %grades;
+
+  print {$html_fh} <<HERE;
 <h3>Total numbers of distribution test grades</h3>
 <table border="1" cellpadding="2" cellspacing="0">
 <tr><th>perl</th>
@@ -210,16 +250,19 @@ HERE
 
   print {$html_fh} (map qq{<th class="grade $_">$_</th>}, @grades), "</tr>\n";
 
-  foreach my $s ( ['old', $dist_grades_old],
-                  ['new', $dist_grades_new],
-                  ['total', \%grade_totals], )
+  my @rows = [
+    (map [$perlspecs[$_]->name, $dist_grades[$_]], 0..$#perlspecs),
+    ['total', \%grades]
+  ];
+  foreach my $s (@rows)
   {
+    my ($thisrow_name, $thisrow_grades) = @$s;
     my $nthisrow = 0;
-    $nthisrow += $_||0 for values %{$s->[1]};
+    $nthisrow += $_||0 for values %{$thisrow_grades};
 
-    print {$html_fh} "<tr><th>$s->[0]</th>";
+    print {$html_fh} "<tr><th>$thisrow_name</th>";
     foreach (@grades) {
-      print {$html_fh} '<td class="statstd">' . sprintf("%i (%.0f%%)", $s->[1]{$_}||0, 100*($s->[1]{$_}||0)/$nthisrow) . "</td>";
+      print {$html_fh} '<td class="statstd">' . sprintf("%i (%.0f%%)", $thisrow_grades->{$_}||0, 100*($thisrow_grades->{$_}||0)/$nthisrow) . "</td>";
     }
     print {$html_fh} "</tr>\n";
   }
@@ -229,7 +272,6 @@ HERE
   close $html_fh;
 }
 
-=cut
 
 
 #########################################################
@@ -263,7 +305,7 @@ sub colorspan {
   my ($grade, $path) = @_;
   my $color;
   return defined($path)
-          ? qq{  <td class="grade $grade"><a href="$path">$grade</a></td>\n} 
+          ? qq{  <td class="grade $grade"><a href="$path">$grade</a></td>\n}
           : qq{  <td class="grade $grade">$grade</td>\n};
 }
 
