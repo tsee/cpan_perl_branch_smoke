@@ -158,7 +158,7 @@ for my $d ( sort keys %all_dists ) {
       }
 
       ++$increment_ary->[$iperl][$iperl2];
-      ++$increment_ary->[$iperl2][$iperl];
+      #++$increment_ary->[$iperl2][$iperl];
     }
   }
 
@@ -177,20 +177,17 @@ for my $d ( sort keys %all_dists ) {
   }
 
   # Skip all dists that have consistently the same result
-  ++$nsame, next if $skip_missing and (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
-  #++$nsame, next if (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
-  ++$nsame, next if @grades == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
+  if ($skip_missing
+      and (@grades-$this_nmissing)
+          == scalar(grep defined($_) && $_ eq $firstgrade, @grades))
+  {
+    ++$nsame, next;
+  } elsif (@grades == scalar(grep defined($_) && $_ eq $firstgrade, @grades)) {
+    ++$nsame, next;
+  }
   ++$ndiff;
 
   $_ ||= 'missing' for @grades;
-
-  #my $old_grade = $old{$d}{grade} || 'missing';
-  #my $new_grade = $new{$d}{grade} || 'missing';
-  #if ($skip_missing and $old_grade eq 'missing' || $new_grade eq 'missing') {
-  #  ++$nmissing;
-  #  next;
-  #}
-  #++$ndiff;
 
   if ( $opt->get_html ) {
     my @rel_report_paths = map { exists $results[$_]{$d}{file} ? $results[$_]{$d}{file}->relative($report_dirs[$_]) : '' } (0..$#perlspecs);
@@ -273,6 +270,13 @@ HERE
   }
   print {$html_fh} "</table>\n";
 
+  print {$html_fh} "<h3>Pairwise numbers of differing grades</h3>\n";
+  my @perlnames = map $_->name, @perlspecs;
+  matrix_html_table($html_fh, \@perlnames, \@perlnames, \@pairwise_ndiff, "statstd");
+
+  print {$html_fh} "<h3>Pairwise numbers of matching grades</h3>\n";
+  matrix_html_table($html_fh, \@perlnames, \@perlnames, \@pairwise_nsame, "statstd");
+
   print {$html_fh} "</body></html>\n";
   close $html_fh;
 }
@@ -314,4 +318,20 @@ sub colorspan {
           : qq{  <td class="grade $grade">$grade</td>\n};
 }
 
+sub matrix_html_table {
+  my $fh = shift;
+  my $coltitles = shift;
+  my $rowtitles = shift;
+  my $matrix = shift;
+  my $cssclass = shift;
+  my $classstr = defined($cssclass) ? qq{ class="$cssclass"} : "";
 
+  print {$fh} qq{<table cellspacing="0" border="1" cellpadding="2"><tr><th$classstr> </th>},
+              (map "<th$classstr>$_</th>", @$coltitles), "</tr>";
+  foreach my $irow (0..$#$matrix) {
+    my $row = $matrix->[$irow];
+    print {$fh} "<tr><th$classstr>$rowtitles->[$irow]</th>",
+                (map "<td$classstr>$_</td>", @$row), "</tr>";
+  }
+  print {$fh} qq{</table>\n};
+}
