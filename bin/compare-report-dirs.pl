@@ -177,7 +177,9 @@ for my $d ( sort keys %all_dists ) {
   }
 
   # Skip all dists that have consistently the same result
-  ++$nsame, next if (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
+  ++$nsame, next if $skip_missing and (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
+  #++$nsame, next if (@grades-$this_nmissing) == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
+  ++$nsame, next if @grades == scalar(grep defined($_) && $_ eq $firstgrade, @grades);
   ++$ndiff;
 
   $_ ||= 'missing' for @grades;
@@ -197,7 +199,7 @@ for my $d ( sort keys %all_dists ) {
     my @file_copies;
     foreach my $ipath (0..$#rel_report_paths) {
       next if not $rel_report_paths[$ipath];
-      push @file_copies, $web_report_outdirs[$ipath]->file($results[$ipath]{$d}{file}->basename . ".txt");
+      $file_copies[$ipath] = $web_report_outdirs[$ipath]->file($results[$ipath]{$d}{file}->basename . ".txt");
       copy( "" . $results[$ipath]{$d}{file} => $file_copies[-1] ) or die "copy failed: $!";
       $file_copies[-1] = $file_copies[-1]->relative( $output_dir );
     }
@@ -223,7 +225,10 @@ if ( $opt->get_html ) {
   Distributions in at least two sets: $nexist_multi<br/>
   Distributions with identical grade across all perls: $nsame<br/>
   Distributions with differing grade in some perls: $ndiff<br/>
-  <table border="0" cellpadding="2" cellspacing="0">
+</p>
+<p>
+  No. of distributions missing from each perl:<br/>
+  <table border="1" cellpadding="2" cellspacing="0">
     <tr>
 HERE
 
@@ -238,7 +243,7 @@ HERE
 
   my %grades;
   foreach my $gradeset (@dist_grades) {
-    ++$grades{$_} for keys %$gradeset;
+    $grades{$_} += $gradeset->{$_} for keys %$gradeset;
   }
   my @grades = sort keys %grades;
 
@@ -250,10 +255,10 @@ HERE
 
   print {$html_fh} (map qq{<th class="grade $_">$_</th>}, @grades), "</tr>\n";
 
-  my @rows = [
+  my @rows = (
     (map [$perlspecs[$_]->name, $dist_grades[$_]], 0..$#perlspecs),
     ['total', \%grades]
-  ];
+  );
   foreach my $s (@rows)
   {
     my ($thisrow_name, $thisrow_grades) = @$s;
