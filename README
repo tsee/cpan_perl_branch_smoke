@@ -16,6 +16,7 @@ User Guide
   See the definition of the various fields below the User Guide.
   For the sake of this guide, assume that there's two perl's configured
   that have the names 'reference' and 'test'.
+  Suppose also, that this software is available in ~/cpanbranchtest.
 
 - Get a minicpan: (CPAN::Mini required, see next step)
   $ minicpan -l ~/minicpan/ -r http://your_favourite_cpan_mirror
@@ -24,12 +25,14 @@ User Guide
 - Install all the required smoker modules in an unrelated perl. Can be the system perl,
   your own, whatever.
   => Either use the slightly questionable (because of the sudo)
-     "sudo perl bin/install_prereqs.pl --is-host-perl --perl=`which perl` --config=myconfig.yml"
+     $ sudo perl bin/install_prereqs.pl --is-host-perl --perl=`which perl` --config=myconfig.yml"
   => Or manually install the host_perl modules listed in bin/install_prereqs.pl.
 
 - Build the two perls to compare (and install smoking modules into each):
-  $ cd ~/cpanbranchtest; perl bin/prep_a_perl --config=myconfig.yml --perl-name=reference
-  $ cd ~/cpanbranchtest; perl bin/prep_a_perl --config=myconfig.yml --perl-name=test
+  $ cd ~/cpanbranchtest
+  $ perl bin/prep_a_perl --config=myconfig.yml
+  You can use the --perl-name=... option to pick one or more perls to build at a time
+  (several --perl-name=... are allowed in one run).
 
 - Get a list of distributions to smoke:
   TODO: convert to using config file.
@@ -38,13 +41,13 @@ User Guide
 
 - The big, slow step: Run the smoker for each perl:
   $ cd ~/cpanbranchtest
+  # Ideally one in a screen session each:
   $ perl bin/smoker.pl --config=myconfig.yml --perlname=reference to_smoke.txt
   $ perl bin/smoker.pl --config=myconfig.yml --perlname=test to_smoke.txt
 
   At (presumably) any point during the run, you can kill the smoker process
-  and restart it with the same output directory. It won't reprocess
-  distributions for which a report exists. If you need to start from scratch,
-  use the --restart-from-scratch smoker option.
+  and restart it. It won't reprocess distributions for which a report exists.
+  If you need to start from scratch, use the --restart-from-scratch smoker option.
   Be aware that restarting will require re-building the distributions that are
   depended on by those still outstanding, so it can lead to quite some duplicate
   work. The same applies to parallelization, btw.
