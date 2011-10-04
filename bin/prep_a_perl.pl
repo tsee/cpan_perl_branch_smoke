@@ -95,6 +95,7 @@ exit(0);
 sub install_a_perl {
   my ($srcdir, $targetdir, $opt) = @_;
 
+  File::Path::mkpath($targetdir);
   my $d = pushd($srcdir);
   my @cmd = (
     'grindperl',
