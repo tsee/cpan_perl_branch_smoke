@@ -28,6 +28,9 @@ sub install_dir {
 }
 sub executable {
   my $self = shift;
+  if (defined $self->{executable}) {
+    return $self->{executable};
+  }
   return File::Spec->catfile($self->install_dir, 'bin', 'perl');
 }
 
