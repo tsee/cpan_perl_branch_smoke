@@ -79,6 +79,7 @@ Catalyst-Authentication-Store-LDAP # hangs
 REGEXP: \bNet-Proxy-0\.12\.tar\.gz$ # hangs quite often, not always
 Audio-Ecasound # hangs very early: RT 32101
 parrot
+PPerl # Zombie galore?
 REGEXP: \bIPC-Shareable-0\.60\.tar\.gz$       # hangs
 REGEXP: \bWWW-Blog-Metadata-0\.02\.tar\.gz$           # ExtUtils::AutoInstall 0.56 http://rt.cpan.org/Ticket/Display.html?id=40601
 Chart-Graph #  hangs Makefile.PL: RT 33541
