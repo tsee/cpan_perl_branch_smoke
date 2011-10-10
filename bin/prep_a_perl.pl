@@ -34,7 +34,7 @@ if (not defined $opt->{perl_name} or not ref($opt->{perl_name}) eq 'ARRAY') {
 else {
   @perlnames = @{$opt->{perl_name}};
 }
-my @perls = grep defined($_->smoke_branch), map $cfg->perl($_), @perlnames;
+my @perls = grep defined($_->smoke_branch) && !$_->has_explicit_executable, map $cfg->perl($_), @perlnames;
 
 if (not defined $cfg->perl_git_remote and not defined $opt->{local_repo}) {
   die "Need either git-remote from config or local-repo option";

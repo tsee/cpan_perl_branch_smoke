@@ -33,6 +33,10 @@ sub executable {
   }
   return File::Spec->catfile($self->install_dir, 'bin', 'perl');
 }
+sub has_explicit_executable {
+  my $self = shift;
+  return defined $self->{executable};
+}
 
 sub smoke_report_output_dir {
   my $self = shift;
