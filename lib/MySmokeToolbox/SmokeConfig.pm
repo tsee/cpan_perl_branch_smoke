@@ -84,3 +84,75 @@ sub _assert_dir {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+MySmokeToolbox::SmokeConfig - Object representing the smoke configuration
+
+=head1 SYNOPSIS
+
+  use MySmokeToolbox::SmokeConfig;
+  my $cfg = MySmokeToolbox::SmokeConfig->new('smokeconfig.yml');
+  # or ->new(\$smokeconfig_content) to load from a string
+
+=head1 DESCRIPTION
+
+Instances of this class represent a full CPAN smoke configuration including
+any number of perls to test.
+
+=head1 METHODS
+
+=head2 new
+
+Creates a new configuration object. Requires either a path to a YAML configuration
+file or a reference to a scalar containing the YAML.
+
+=head2 name, perl_git_remote, cpan_mirror, perl_install_base,
+smoke_report_output_base, smoke_processes_per_perl
+
+Simple accessors to the YAML configuration properties of the same names
+(with dashes replaced by underscores).
+
+=head2 tmpdir
+
+Returns the path to the temporary directory to use for this smoke.
+This defaults to C<File::Spec-E<gt>tmpdir> if not configured using the
+C<tmpdir> property in the YAML.
+
+The path does not necessarily exist.
+
+=head2 perls
+
+Returns all L<MySmokeToolbox::SmokeConfig::Perl> objects in this configuration
+in the order they're defined in the YAML configuration.
+
+This creates new objects, any modifications done to objects returned by
+previous invocations won't be included.
+
+=head2 perl
+
+Takes the name of a perl as configured in the YAML configuration.
+Returns the corresponding L<MySmokeToolbox::SmokeConfig::Perl> object.
+
+Like C<perls()>, this creates a new object per invocation.
+
+=head2 ...
+
+TODO: finish
+
+=head1 AUTHOR
+
+Steffen Mueller C<E<gt>smueller@cpan.orgE<lt>>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2011 by Steffen Mueller
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
+
