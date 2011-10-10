@@ -17,3 +17,5 @@ perls:
     smoke-branch: 'chip/magicflags2'
     grindperl-opt:
       - '-Dusethreads'
+  - perl-name: 'systemperl'
+    executable: '/usr/bin/perl'

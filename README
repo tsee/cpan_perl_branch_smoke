@@ -30,7 +30,7 @@ User Guide
 
 - Build the two perls to compare (and install smoking modules into each):
   $ cd ~/cpanbranchtest
-  $ perl bin/prep_a_perl --config=myconfig.yml
+  $ perl bin/prep_a_perl.pl --config=myconfig.yml
   You can use the --perl-name=... option to pick one or more perls to build at a time
   (several --perl-name=... are allowed in one run).
 
@@ -120,4 +120,8 @@ Should be straight-forward, but let's walk through the fields:
    grindperl-opt:
      - '-Dusethreads'
    should work, but is untested.
+=> 'executable' is an alternative to specifying the 'smoke-branch'. If
+   the 'executable' option is present, the given perl will be used for
+   smoking. Obviously, perls with specified executable won't be picked
+   up by the prep_a_perl script.
 
