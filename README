@@ -1,12 +1,13 @@
-This is a very, very crude step-by-step recipe for setting up a full CPAN
-smoke for two branchs of perl and generating a regression report from the
-results. There are various known issues. Among the top ones are that
-parallelization and restarting comes at a very high cost in terms of
-redoing work (for all dependencies of the dists to test), and that the
-whole thing is all but user friendly. --Steffen
+This is a very, very crude step-by-step recipe for setting up a full
+CPAN smoke for multiple branches of perl and generating a regression
+report from the results. There are various known issues. Among the top
+ones are that parallelization and restarting comes at a very high cost
+in terms of redoing work (for all dependencies of the dists to test),
+and that the whole thing is all but user friendly. --Steffen
 
 TODO: Validate that the CPAN config works without host perl config being
-properly set up. This matters only for bootstrapping.
+properly set up. This matters only for bootstrapping. (Update: It does
+not unless you have at least CPAN::Mini installed.)
 
 User Guide
 ==========
