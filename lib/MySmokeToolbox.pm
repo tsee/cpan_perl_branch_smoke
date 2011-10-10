@@ -21,6 +21,14 @@ our @EXPORT_OK = qw(
   can_run
 );
 
+
+=head2 src_conf_dir
+
+Returns the path to the CPAN smoking configuration directory.
+This is where the prepared CPANPLUS configuration is taking from.
+
+=cut
+
 SCOPE: {
   my $conf_dir;
   sub src_conf_dir {
@@ -30,11 +38,26 @@ SCOPE: {
   }
 }
 
+=head2 make_work_dir
+
+Creates a new temporary directory and sets the HOME dir as well as a few
+CPAN testing enviornment variables to that directory. Returns the path
+of the temporary directory.
+
+=cut
+
 sub make_work_dir {
   my $workdir = tempdir(CLEANUP => 1, DIR => File::Spec->tmpdir);
   $ENV{HOME} = $ENV{PERL5_CPANPLUS_BASE} = $ENV{PERL5_YACSMOKE_BASE} = $workdir;
   return $workdir;
 }
+
+=head2 setup_cpanplus_dir
+
+Given the path to a working directory, copies the prepared
+CPANPLUS configuration to it.
+
+=cut
 
 sub setup_cpanplus_dir {
   my $workdir = shift;
@@ -43,6 +66,14 @@ sub setup_cpanplus_dir {
   File::Copy::Recursive::dircopy($cpanpdir, File::Spec->catdir($workdir, '.cpanplus')) or die $!;
 }
 
+=head2 setup_cpan_dir
+
+Given the path to a working directory, copies the prepared
+CPAN configuration to it. (Useful for installing prerequisites
+only. Maybe broken?)
+
+=cut
+
 sub setup_cpan_dir {
   my $workdir = shift;
   my $cpandir = File::Spec->catdir(src_conf_dir(), '.cpan');
@@ -50,6 +81,16 @@ sub setup_cpan_dir {
   File::Copy::Recursive::dircopy($cpandir, File::Spec->catdir($workdir, '.cpan')) or die $!;
 }
 
+=head2 get_report_info
+
+Given the path to a CPAN testers report file, extracts the distribution name
+and test grade from either the file name (if possible because it's much faster)
+or from the file contents.
+
+Returns a hashref containing the C<distribution>, C<file>, and C<grade>
+keys with the obvious values.
+
+=cut
 
 # This attempts to determine the distname and test grade from the report file name.
 # While a hack, this is practically a requirement over using Test::Reporter to
@@ -80,17 +121,35 @@ sub _get_report_info_reporter {
   return { file => $file, grade => $tr->grade, distribution => $tr->distribution };
 }
 
+=head2 runsys
+
+Runs the provided C<system> call and warns on failure.
+
+=cut
+
 sub runsys {
   my @cmd = @_;
   my $ret = system(@cmd) and warn "Possibly failed to run command '@cmd': $!";
   return $ret;
 }
 
+=head2 runsys
+
+Runs the provided C<system> call and dies on failure.
+
+=cut
+
 sub runsys_fatal {
   my @cmd = @_;
   system(@cmd) and die "Failed to run command '@cmd': $!"; # FIXME $?
   return 0;
 }
+
+=head2 can_run
+
+Returns whether we think we can execute the given command.
+
+=cut
 
 # From Module::Install::Can
 # check if we can run some command
