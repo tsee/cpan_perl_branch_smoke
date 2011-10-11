@@ -138,9 +138,13 @@ Returns the corresponding L<MySmokeToolbox::SmokeConfig::Perl> object.
 
 Like C<perls()>, this creates a new object per invocation.
 
-=head2 ...
+=head2 assert_perl_install_base
 
-TODO: finish
+Creates the perl installation base path if it does not exist.
+
+=head2 assert_smoke_report_output_base
+
+Creates the smoke report output base path if it does not exist.
 
 =head1 AUTHOR
 
