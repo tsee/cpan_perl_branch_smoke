@@ -83,6 +83,19 @@ sub _assert_dir {
   return 1;
 }
 
+sub distribution_list_file {
+  my $self = shift;
+  my $smoke_out = $self->smoke_report_output_base;
+  return File::Spec->catfile($smoke_out, 'smoke_distributions.txt');
+}
+
+sub assert_distribution_list_file {
+  my $self = shift;
+  my $file = $self->distribution_list_file;
+  return() if -e $file;
+  MySmokeToolbox::MakeDistList->make_dist_list($self->cpan_mirror, $self->distribution_list_file);
+}
+
 1;
 
 __END__
@@ -145,6 +158,16 @@ Creates the perl installation base path if it does not exist.
 =head2 assert_smoke_report_output_base
 
 Creates the smoke report output base path if it does not exist.
+
+=head2 distribution_list_file
+
+Returns the path to the text file containing the distributions
+to smoke.
+
+=head2 assert_distribution_list_file
+
+If the distribution list file doesn't exist, this will
+generate it from 02packages in the configured minicpan.
 
 =head1 AUTHOR
 

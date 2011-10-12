@@ -33,6 +33,13 @@ $processes = 1 if not $processes;
 my $mirror = $cfg->cpan_mirror;
 my $perl = $perlcfg->executable;
 
+if (not scalar @ARGV) {
+  my $distfile = $cfg->distribution_list_file;
+  if (-e $distfile) {
+    warn "Using distributions from '$distfile'";
+    unshift @ARGV, $distfile;
+  }
+}
 die "No modules specified to smoke\n" unless scalar @ARGV;
 
 $perlcfg->assert_smoke_report_output_dir;

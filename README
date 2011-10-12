@@ -36,15 +36,17 @@ User Guide
   (several --perl-name=... are allowed in one run).
 
 - Get a list of distributions to smoke:
-  TODO: convert to using config file.
-  $ cd ~/cpanbranchtest; perl bin/get_dists.pl --config=myconfig.yml > to_smoke.txt
-  You can manually specify dist files or module names in a text instead!
+  $ cd ~/cpanbranchtest; perl bin/get_dists.pl --config=myconfig.yml
+  By default, these will be taken from the configured source minicpan and written
+  to the smoke_distributions.txt file of the smoke report output directory (see
+  configuration).
+  You can manually specify dist files or module names in that file instead.
 
 - The big, slow step: Run the smoker for each perl:
   $ cd ~/cpanbranchtest
   # Ideally one in a screen session each:
-  $ perl bin/smoker.pl --config=myconfig.yml --perlname=reference to_smoke.txt
-  $ perl bin/smoker.pl --config=myconfig.yml --perlname=test to_smoke.txt
+  $ perl bin/smoker.pl --config=myconfig.yml --perlname=reference
+  $ perl bin/smoker.pl --config=myconfig.yml --perlname=test
 
   At (presumably) any point during the run, you can kill the smoker process
   and restart it. It won't reprocess distributions for which a report exists.
