@@ -57,7 +57,7 @@ User Guide
 
 - Compare the output
   TODO: convert to using config file.
-  $ perl bin/compare-report-dirs.pl --output-dir=html_out --reference-dir=out/perl-reference/ --test-dir=out/perl-testbranch/ --html
+  $ perl bin/compare-report-dirs.pl --output-dir=html_out --html
   (This may take a while...)
   $ firefox html_out/index.html
   
