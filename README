@@ -53,10 +53,9 @@ User Guide
   If you need to start from scratch, use the --restart-from-scratch smoker option.
   Be aware that restarting will require re-building the distributions that are
   depended on by those still outstanding, so it can lead to quite some duplicate
-  work. The same applies to parallelization, btw.
+  work. The same gotcha applies to parallelization, btw.
 
 - Compare the output
-  TODO: convert to using config file.
   $ perl bin/compare-report-dirs.pl --output-dir=html_out --html
   (This may take a while...)
   $ firefox html_out/index.html
@@ -66,8 +65,15 @@ User Guide
   --skip-missing option to compare-report-dirs.pl.
 
 - The smoker will run for a few days.
-  (My test run: Two perls, 4-core/8-thread Xeon, 14 smoker processes => 4 days)
+  My test run: Two perls, 4-core/8-thread Xeon, 14 smoker processes => 4 days.
+  Slightly overcommitting the machine is not a bad idea since some distributions
+  may block on random stuff such as user input and we don't want our precious
+  CPU time wasted with timeouts, do we?
 
+- For setting this up on a new host, check out the bin/cron_* scripts which are
+  an enormously hacky and somewhat hardcoded way of regularly pushing machine
+  status, smoke progress, and the current smoke report to the some web-accessible
+  place.
 
 Configuration File
 ==================
