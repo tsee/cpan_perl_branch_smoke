@@ -64,6 +64,7 @@ print <<HERE;
 </head>
 <body>
 <h1>Smoke status for $smokename</h1>
+<p>Generated at @{[scalar localtime()]}.</p>
 HERE
 
 if ($psinfo) {
