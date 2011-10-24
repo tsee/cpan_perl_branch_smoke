@@ -4,6 +4,7 @@ use warnings;
 use File::Spec;
 use FindBin qw($RealBin);
 use Getopt::Long qw(GetOptions);
+use File::Basename qw(fileparse);
 
 use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
 
@@ -18,7 +19,10 @@ GetOptions(
 
 my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
 
-my $pid = -f "$RealBin/smoke.pid" ? `cat $RealBin/smoke.pid` : 0;
+my ($name, $path, $suffix) = fileparse($configfile, 'yml', 'yaml');
+my $pidfile = File::Spec->catfile($path, $name . '.pid');
+
+my $pid = -f $pidfile ? `cat $pidfile` : 0;
 my $psinfo = "";
 if ($pid) {
   $psinfo = `pstree -p $pid`;
