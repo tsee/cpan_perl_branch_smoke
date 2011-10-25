@@ -30,7 +30,7 @@ if (not $pid) {
   exit(0);
 }
 
-my $report_script = File::Spec->catfile($RealBin, 'bin', 'compare-report-dirs.pl');
+my $report_script = File::Spec->catfile($RealBin, 'compare-report-dirs.pl');
 
 my ($skipped_dir, $all_dir) = make_reports($report_script, $configfile, $cfg);
 foreach my $dir ($skipped_dir, $all_dir) {
