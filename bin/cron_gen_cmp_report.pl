@@ -32,7 +32,7 @@ if (not $pid) {
 
 my $report_script = File::Spec->catfile($RealBin, 'compare-report-dirs.pl');
 
-my ($skipped_dir, $all_dir) = make_reports($report_script, $configfile, $cfg);
+my ($tmpdir, $skipped_dir, $all_dir) = make_reports($report_script, $configfile, $cfg);
 foreach my $dir ($skipped_dir, $all_dir) {
   $dir =~ s/\/$//;
   system(qq{rsync -rz $dir dromedary:public_html/}) and die $!;
@@ -45,7 +45,7 @@ sub make_reports {
   my $name = $cfg->name;
 
   my @outdirs = (File::Spec->catdir($tmpdir, $name));
-  my @cmd = ($^X, $script, '--config', $cfgfile, '--outdir', $outdirs[-1], '--skip-missing');
+  my @cmd = ($^X, $script, '--html', '--config', $cfgfile, '--output-dir', $outdirs[-1], '--skip-missing');
   system(@cmd)
     and die "Failed to generate report: $!";
 
@@ -55,5 +55,5 @@ sub make_reports {
   system(@cmd)
     and die "Failed to generate report: $!";
 
-  return @outdirs;
+  return($tmpdir, @outdirs);
 }

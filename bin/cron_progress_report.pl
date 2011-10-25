@@ -19,7 +19,7 @@ GetOptions(
 
 my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
 
-my ($name, $path, $suffix) = fileparse($configfile, 'yml', 'yaml');
+my ($name, $path, $suffix) = fileparse($configfile, '.yml', '.yaml');
 my $pidfile = File::Spec->catfile($path, $name . '.pid');
 
 my $pid = -f $pidfile ? `cat $pidfile` : 0;
