@@ -282,4 +282,4 @@ POE-Component-WWW-Google-PageRank # hangs in 00-load with 34437
 POE-Component-WebService-HtmlKitCom-FavIconFromImage # hangs
 Alien-ActiveMQ           # downloads 50MB and leaves them in /tmp/
 Fax-HylaFax-Client # 'make test' requires input and a working fax server.
-
+Geo-Coder-Google # network connection
