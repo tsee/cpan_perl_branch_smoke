@@ -86,7 +86,7 @@ sub _assert_dir {
 sub distribution_list_file {
   my $self = shift;
   my $smoke_out = $self->smoke_report_output_base;
-  return File::Spec->catfile($smoke_out, 'smoke_distributions.txt');
+  return File::Spec->catfile($smoke_out, $self->name, 'smoke_distributions.txt');
 }
 
 sub assert_distribution_list_file {
