@@ -19,6 +19,7 @@ my @spec = (
   Param("output-dir", sub { 1 } )->required,
   # optional
   Switch("html"),
+  Switch("write-resmoke-list"),
   Switch("help|h"),
   Switch("skip-missing"),
 );
@@ -45,6 +46,10 @@ if ( grep { /^(?:--help|-h)$/ } @ARGV ) {
 }
 
 my $opt = Getopt::Lucid->getopt( \@spec );
+
+# We link to it in the HTML, so we need to write it always if
+# we have an HTML report
+$opt->set_write_resmoke_list(1) if $opt->get_html;
 
 my $configfile = $opt->get_config;
 my $cfg = MySmokeToolbox::SmokeConfig->new($configfile);
@@ -73,6 +78,17 @@ my $output_dir = dir( $opt->get_output_dir )->absolute;
 my @perlspecs = map $cfg->perl($_), @perlnames;
 my @report_dirs = map dir($_->smoke_report_output_dir)->absolute, @perlspecs;
 
+# Set up file handle for writing a list of distributions in the report
+# (!= list of dists in the SMOKE!)
+$output_dir->mkpath() if $opt->get_write_resmoke_list;
+my $resmoke_list_file;
+$resmoke_list_file = File::Spec->catfile($output_dir, 'report_dist_list.txt') if $opt->get_write_resmoke_list;
+my $resmoke_list_fh;
+if ($resmoke_list_file) {
+  open $resmoke_list_fh, '>', $resmoke_list_file
+    or die "Can't open file for resmoke-list: $!";
+}
+
 # array of hashrefs containing distname => infohash
 my @results = map +{read_results($_)}, @report_dirs;
 
@@ -84,7 +100,6 @@ my %all_dists;
 foreach my $result (@results) {
   $all_dists{$_} = 1 for keys %$result;
 }
-
 warn "Total dists: " . scalar(keys %all_dists) . "\n";
 
 my @web_report_outdirs;
@@ -203,6 +218,10 @@ for my $d ( sort keys %all_dists ) {
 
   $_ ||= 'missing' for @grades;
 
+  if (defined $resmoke_list_fh) {
+    print {$resmoke_list_fh} $d, "\n";
+  }
+
   if ( $opt->get_html ) {
     my @rel_report_paths = map { exists $results[$_]{$d}{file} ? $results[$_]{$d}{file}->relative($report_dirs[$_]) : '' } (0..$#perlspecs);
 
@@ -232,6 +251,8 @@ for my $d ( sort keys %all_dists ) {
     printf( ("%8s " x scalar(@perlspecs)) . "%s\n", @grades, $d);
   }
 }
+
+close $resmoke_list_fh if defined $resmoke_list_fh;
 
 if ( $opt->get_html ) {
   print {$html_fh} "</table>\n";
