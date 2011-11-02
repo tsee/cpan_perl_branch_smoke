@@ -46,13 +46,13 @@ sub make_reports {
 
   my @outdirs = (File::Spec->catdir($tmpdir, $name));
   my @cmd = ($^X, $script, '--html', '--config', $cfgfile, '--output-dir', $outdirs[-1], '--skip-missing');
-  system(@cmd)
+  system("@cmd 2>&1")
     and die "Failed to generate report: $!";
 
   push @outdirs, $outdirs[-1] . '_withmissing_dists';
   pop @cmd;
   $cmd[-1] = $outdirs[-1];
-  system(@cmd)
+  system("@cmd 2>&1")
     and die "Failed to generate report: $!";
 
   return($tmpdir, @outdirs);
