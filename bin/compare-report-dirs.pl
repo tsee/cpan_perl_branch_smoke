@@ -10,7 +10,7 @@ use File::Copy qw/copy/;
 use FindBin qw($RealBin);
 use lib File::Spec->catdir($RealBin, File::Spec->updir, 'lib');
 use MySmokeToolbox qw(get_report_info);
-use Parse::CPAN::Packages::Fast;
+use Parse::CPAN::Packages;
 
 my @spec = (
   # required
@@ -67,7 +67,7 @@ if ($opt->get_html) {
   if ($cpan_mirror =~ s/^file:\/\///) {
     local $| = 1;
     print "Parsing CPAN packages file. This may take a while...\n";
-    $cpan_packages = Parse::CPAN::Packages::Fast->new(File::Spec->catfile($cpan_mirror, 'modules', '02packages.details.txt.gz'));
+    $cpan_packages = Parse::CPAN::Packages->new(File::Spec->catfile($cpan_mirror, 'modules', '02packages.details.txt.gz'));
     print "Done parsing CPAN packages file.\n";
   }
 }
@@ -242,6 +242,7 @@ for my $d ( sort keys %all_dists ) {
     print {$html_fh} qq{  <td><a href="http://search.cpan.org/dist/$d">$d</a></td>\n};
     if ($cpan_packages) {
       (my $distname = $d) =~ s/-v?[\d\._]+(?:-?TRIAL|[a-z])?$//;
+      warn $distname;
       my $dist_obj = $cpan_packages->latest_distribution($distname);
       print {$html_fh} "<td>" . ($dist_obj ? $dist_obj->cpanid : '') . "</td>\n";
     }
