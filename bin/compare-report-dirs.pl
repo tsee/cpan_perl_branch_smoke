@@ -126,7 +126,7 @@ if ( $opt->get_html ) {
   .missing  { background-color: transparent }
 </style>
 </head>
-<body><h1>Regresssion test</h1>
+<body><h1>Regression test</h1>
 <p>Generated at $timestamp.</p>
 <table><tr>
 HTML
@@ -317,6 +317,16 @@ HERE
 
   print {$html_fh} "<h3>Pairwise numbers of matching grades</h3>\n";
   matrix_html_table($html_fh, \@perlnames, \@perlnames, \@pairwise_nsame, "statstd");
+
+  if (defined $resmoke_list_file) {
+    print {$html_fh} <<'HERE';
+      <h3>Distribution list in this report</h3>
+      <p>
+        <a href="report_dist_list.txt">This</a> is the <a href="report_dist_list.txt">list of distributions</a>
+        in the report above. Not the complete list of distributions in the smoke.
+      </p>
+HERE
+  }
 
   print {$html_fh} "</body></html>\n";
   close $html_fh;
