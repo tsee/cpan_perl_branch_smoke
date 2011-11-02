@@ -242,7 +242,6 @@ for my $d ( sort keys %all_dists ) {
     print {$html_fh} qq{  <td><a href="http://search.cpan.org/dist/$d">$d</a></td>\n};
     if ($cpan_packages) {
       (my $distname = $d) =~ s/-v?[\d\._]+(?:-?TRIAL|[a-z])?$//;
-      warn $distname;
       my $dist_obj = $cpan_packages->latest_distribution($distname);
       print {$html_fh} "<td>" . ($dist_obj ? $dist_obj->cpanid : '') . "</td>\n";
     }
