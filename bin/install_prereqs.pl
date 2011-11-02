@@ -74,6 +74,7 @@ my %modules = (
     CPANPLUS::YACSmoke
     File::Copy::Recursive
     File::pushd
+    Parse::CPAN::Packages
   )],
 );
 
