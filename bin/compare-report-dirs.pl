@@ -135,7 +135,7 @@ HTML
   }
   print {$html_fh} "<th>Distribution</th>"
                    . ($cpan_packages ? "<th>Author</th>" : '')
-                   . "</tr>\n";
+                   . "<th>RT link</th></tr>\n";
 }
 else {
   for ([map {substr($_, 0, 8)} ((map $_->name, @perlspecs), "dist")], [('------') x scalar(@perlspecs), '-------']) {
@@ -240,11 +240,12 @@ for my $d ( sort keys %all_dists ) {
     }
 
     print {$html_fh} qq{  <td><a href="http://search.cpan.org/dist/$d">$d</a></td>\n};
+    (my $distname = $d) =~ s/-v?[\d\._]+(?:-?TRIAL|[a-z])?$//;
     if ($cpan_packages) {
-      (my $distname = $d) =~ s/-v?[\d\._]+(?:-?TRIAL|[a-z])?$//;
       my $dist_obj = $cpan_packages->latest_distribution($distname);
       print {$html_fh} "<td>" . ($dist_obj ? $dist_obj->cpanid : '') . "</td>\n";
     }
+    print {$html_fh} qq{<td><a href="https://rt.cpan.org/Public/Dist/Display.html?Name=$distname">RT link</a></td>};
     print {$html_fh} "</tr>\n";
   }
   else {
