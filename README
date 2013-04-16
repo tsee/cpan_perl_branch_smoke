@@ -26,7 +26,7 @@ User Guide
 - Install all the required smoker modules in an unrelated perl. Can be the system perl,
   your own, whatever.
   => Either use the slightly questionable (because of the sudo)
-     $ sudo perl bin/install_prereqs.pl --is-host-perl --perl=`which perl` --config=myconfig.yml"
+     $ sudo perl bin/install_prereqs.pl --into-host-perl=`which perl` --config=myconfig.yml"
   => Or manually install the host_perl modules listed in bin/install_prereqs.pl.
 
 - Build the two perls to compare (and install smoking modules into each):
