@@ -14,9 +14,9 @@ use Parse::CPAN::Packages;
 
 my @spec = (
   # required
-  Param("config", sub { -r } )->required,
+  Param("config"),
   List("perl_name|perl-name|perlname"),
-  Param("output-dir", sub { 1 } )->required,
+  Param("output-dir"),
   # optional
   Switch("html"),
   Switch("write-resmoke-list"),
