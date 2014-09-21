@@ -77,6 +77,11 @@ sub assert_smoke_report_output_base {
   $self->_assert_dir($self->smoke_report_output_base);
 }
 
+sub assert_smoke_report_output_config {
+  my $self = shift;
+  $self->_assert_dir(File::Spec->catfile($self->smoke_report_output_base, $self->name));
+}
+
 sub _assert_dir {
   require File::Path;
   File::Path::mkpath($_[1]);
@@ -86,6 +91,10 @@ sub _assert_dir {
 sub distribution_list_file {
   my $self = shift;
   my $smoke_out = $self->smoke_report_output_base;
+
+  $self->assert_smoke_report_output_base;
+  $self->assert_smoke_report_output_config;
+
   return File::Spec->catfile($smoke_out, $self->name, 'smoke_distributions.txt');
 }
 
